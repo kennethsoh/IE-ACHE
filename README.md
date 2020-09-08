@@ -16,11 +16,11 @@ cd Integer-Expression-Homomorphic-Encryption
 
 2. Copy each sub folder (Client1, Client2, Client3, Cloud, Keygen & Output) into its own virtual machine or hardware machine. You will need minimally 4 machines for 1 Client, Cloud, Keygen and Output.
 
-3. Assign IP Addresses for machines as follows:
-Cloud:    192.168.0.1
-Client1:  192.168.0.21
-Client2:  192.168.0.22
-Client3:  192.168.0.23
-Keygen:   192.168.0.3
-Output:   192.168.0.4
+3. Assign IP Addresses for machines as follows:<br>
+Cloud:    192.168.0.1<br>
+Client1:  192.168.0.21<br>
+Client2:  192.168.0.22<br>
+Client3:  192.168.0.23<br>
+Keygen:   192.168.0.3<br>
+Output:   192.168.0.4<br>
 
