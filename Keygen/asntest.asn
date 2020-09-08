@@ -1,0 +1,50 @@
+TEST DEFINITIONS ::= BEGIN
+    DataMd5 ::= SEQUENCE{
+        data IA5String
+    }
+
+    DataDragonflyVerif ::= SEQUENCE{
+        code INTEGER
+    }
+
+    DataIntiate ::= SEQUENCE{
+        code INTEGER
+    }
+
+    DataMac ::= SEQUENCE {
+        data    IA5String
+    }
+
+    DataKey ::= SEQUENCE {
+        data OCTET STRING
+    }
+
+    DataScalarElement ::= SEQUENCE {
+        data    IA5String
+    }
+
+    DataStaAp ::= SEQUENCE {
+        data    IA5String
+    }
+
+    DataFsize ::= SEQUENCE {
+        data    INTEGER
+    }
+
+    DataContent ::= SEQUENCE{
+        data    OCTET STRING
+    }
+
+    DataIndicator ::= SEQUENCE {
+        data    IA5String
+    }
+
+    DataAnsSize ::= SEQUENCE {
+        data    INTEGER
+    }
+
+    DataAnswer ::= SEQUENCE {
+        data    OCTET STRING
+    }
+
+END

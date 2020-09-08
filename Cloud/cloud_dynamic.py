@@ -1,0 +1,9 @@
+import subprocess
+import time
+import os
+
+while True:
+    # cloudkey = os.path.isfile('cloud.key.hacklab')
+    # print(cloudkey)
+    # if not (cloudkey):
+    os.system('python3 dragonfly_public_cloud.py')
