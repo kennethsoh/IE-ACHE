@@ -14,13 +14,28 @@ git clone https://github.com/kennethsoh/Integer-Expression-Homomorphic-Encryptio
 cd Integer-Expression-Homomorphic-Encryption
 ```
 
-2. Copy each sub folder (Client1, Client2, Client3, Cloud, Keygen & Output) into its own virtual machine or hardware machine. You will need minimally 4 machines for 1 Client, Cloud, Keygen and Output.
+2. Copy each sub folder (Client1, Client2, Client3, Cloud, Keygen & Output) into its own virtual machine or hardware machine. <br>
+You will need minimally 4 machines for 1 Client, Cloud, Keygen and Output.
 
 3. Assign IP Addresses for machines as follows:<br>
-Cloud:    192.168.0.1<br>
-Client1:  192.168.0.21<br>
-Client2:  192.168.0.22<br>
-Client3:  192.168.0.23<br>
-Keygen:   192.168.0.3<br>
-Output:   192.168.0.4<br>
+```
+Cloud:    192.168.0.1
+Client1:  192.168.0.21
+Client2:  192.168.0.22
+Client3:  192.168.0.23
+Keygen:   192.168.0.3
+Output:   192.168.0.4
+```
+
+4. Add the service files in 'Services' folder to ```/etc/systemd/system/```. Edit the WorkingDirectory and ExecStart values if necessary.
+
+5. Start the services on each machine
+```
+systemctl daemon-reload
+systemctl enable MP MP2
+systemctl start MP MP2
+```
+
+6. Run output_dynamic.py on Output machine
+
 
