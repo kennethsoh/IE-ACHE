@@ -1,0 +1,11 @@
+[Unit]
+Description=MP Service for HE
+
+[Service]
+Type=simple
+User=kenneth
+WorkingDirectory=/home/kenneth/codes
+ExecStart=/usr/bin/python3 /home/kenneth/codes/client_dynamic2.py
+
+[Install]
+WantedBy=multi-user.target
