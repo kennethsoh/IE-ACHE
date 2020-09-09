@@ -6,6 +6,7 @@ This system is configured and tested for Ubuntu 20.04 LTS
 
 #### Dependencies
 
+* ASN.1 Tools (https://pypi.org/project/asn1tools/)
 * Fast Fully Homomorphic Encryption over the Torus (https://github.com/tfhe/tfhe)
 * Homomorphic encryption and Dragonfly SAE (https://github.com/powderfool000/ambitioushomo)
 
@@ -29,7 +30,7 @@ Keygen:   192.168.0.3
 Output:   192.168.0.4
 ```
 
-4. Add the service files in 'Services' folder to ```/etc/systemd/system/```. Edit the WorkingDirectory and ExecStart values if necessary.
+4. Add the service files in 'Services' folder to ```/etc/systemd/system/```. Edit the Users, WorkingDirectory and ExecStart values if necessary.
 
 5. Start the services on each machine
 ```
