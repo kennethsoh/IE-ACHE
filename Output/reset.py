@@ -40,6 +40,14 @@ try:
 except:
     None
 try:
+    os.remove("postfix")
+except:
+    None
+try:
+    os.remove("postfix.hacklab")
+except:
+    None
+try:
     os.remove("secret.key")
 except:
     None
