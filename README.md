@@ -6,7 +6,7 @@ This is an extension of an ongoing research project on Arithmetic Circuit Homomo
 
 This system is configured and tested for Ubuntu 20.04 LTS
 
-MD5 checksum of zip file: 654742FFB585E84F1ECC1801D087A9C7
+MD5 checksum of zip file: 558F19E7CDD0B56A6AD9EE8808581D04
 
 #### Dependencies
 
