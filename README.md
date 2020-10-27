@@ -38,11 +38,12 @@ Output:   192.168.0.4
 
 5. Start the services on each machine
 ```
-systemctl daemon-reload
-systemctl enable MP MP2
-systemctl start MP MP2
+$ systemctl daemon-reload
+$ systemctl enable MP MP2
+$ systemctl start MP MP2
 ```
 
 6. Run output_dynamic.py on Output machine
-
-
+```
+Output$ python3 output_dynamic.py
+```
