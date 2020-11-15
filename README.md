@@ -46,8 +46,7 @@ $ git clone https://github.com/kennethsoh/IE-ACHE.git
 $ cd IE-ACHE
 
 # Provide executable permissions if needed
-$ ls -l
-$ chmod u+x *
+$ chmod u+x */*
 ```
 
 2. Repeat dependency installation and Step 1 minimally 4 times for 4 different machines: Client(1/2/3), Cloud, Keygen and Output.
@@ -73,5 +72,6 @@ $ systemctl start MP MP2
 
 6. Run output_dynamic.py on Output machine
 ```
+Output$ cd /IE-ACHE/Output
 Output$ python3 output_dynamic.py
 ```
