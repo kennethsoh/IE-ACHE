@@ -1,28 +1,40 @@
-# Applying Basic Encoding Rule (ITU-T X.690) on Integer Expressions using Arithmetic Circuit Homomorphic Encryption
+# Integer Expressions using Arithmetic Circuit Homomorphic Encryption
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![GitHub repo size](https://img.shields.io/github/repo-size/kennethsoh/integer-expression-homomorphic-encryption)
+![GitHub repo size](https://img.shields.io/github/repo-size/kennethsoh/IE-ACHE)
+![GitHub issues](https://img.shields.io/github/issues/kennethsoh/IE-ACHE)
 
-This is an extension of an ongoing research project on Arithmetic Circuit Homomorphic encryption (ACHE) which was implemented based on Fast Fully Homomorphic Encryption over the Torus (TFHE). This iteration focuses on integrating ASN.1 Basic Encoding Rule for the purpose of computing results of integer expressions up to 3 operands.
+This is an extension of an ongoing research project on Arithmetic Circuit Homomorphic encryption (ACHE) which was implemented based on Fast Fully Homomorphic Encryption over the Torus (TFHE). This iteration focuses on integrating ASN.1 Basic Encoding Rule for the purpose of computing results of integer expressions up to 3 operands. The previous version of the project can be found <a href="https://github.com/powderfool000/ambitioushomo" target="_blank">here</a>.
 
 This system is configured and tested for Ubuntu 20.04 LTS
 
-MD5 checksum of zip file: 558F19E7CDD0B56A6AD9EE8808581D04
+
 
 #### Dependencies
 
 * ASN.1 Tools (https://pypi.org/project/asn1tools/)
-* Fast Fully Homomorphic Encryption over the Torus (https://github.com/tfhe/tfhe)
-* Homomorphic encryption and Dragonfly SAE (https://github.com/powderfool000/ambitioushomo)
-
+* PyCryptodome (https://pypi.org/project/pycryptodomex/)
 ```bash
-pip install asn1tools pycryptodomex
+$ pip3 install asn1tools pycryptodomex
+```
+
+* Fast Fully Homomorphic Encryption over the Torus (https://github.com/tfhe/tfhe)
+```
+$ git clone --recurse-submodules --branch=master https://github.com/tfhe/tfhe.git
+$ cd tfhe
+$ mkdir build; cd build
+$ ccmake ../src
+
+# Press 'c' to configure, then 'g' to generate
+
+$ make
+$ make install
 ```
 
 #### Installation Guide
-1. Download or clone this repository
+1. Clone this repository
 ```bash
-git clone https://github.com/kennethsoh/Integer-Expression-Homomorphic-Encryption.git
-cd Integer-Expression-Homomorphic-Encryption
+$ git clone https://github.com/kennethsoh/IE-ACHE.git
+$ cd IE-ACHE
 ```
 
 2. Copy each sub folder (Client1, Client2, Client3, Cloud, Keygen & Output) into its own virtual machine or hardware machine. <br>
