@@ -32,7 +32,7 @@ $ cd tfhe
 $ mkdir build; cd build
 $ ccmake ../src
 
-# Press 'c' to configure, then 'g' to generate
+# Press c to configure, then g to generate
 $ make
 $ make install
 ```
