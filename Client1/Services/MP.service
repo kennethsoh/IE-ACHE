@@ -4,8 +4,8 @@ Description=MP Service for HE
 [Service]
 Type=simple
 User=kenneth
-WorkingDirectory=/home/kenneth/codes
-ExecStart=/usr/bin/python3 /home/kenneth/codes/client_dynamic.py
+WorkingDirectory=/IE-ACHE
+ExecStart=/usr/bin/python3 /IE-ACHE/Client1/client_dynamic.py
 
 [Install]
 WantedBy=multi-user.target
