@@ -3,9 +3,9 @@ Description=MP Service for HE
 
 [Service]
 Type=simple
-User=kenneth
-WorkingDirectory=/home/kenneth/codes
-ExecStart=/usr/bin/python3 /home/kenneth/codes/keygen_dynamic.py
+User=root
+WorkingDirectory=/IE-ACHE
+ExecStart=/usr/bin/python3 /IE-ACHE/Keygen/keygen_dynamic.py
 
 [Install]
 WantedBy=multi-user.target
