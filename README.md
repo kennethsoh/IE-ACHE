@@ -27,6 +27,7 @@ $ pip3 install asn1tools pycryptodomex
 
 * Fast Fully Homomorphic Encryption over the Torus (https://github.com/tfhe/tfhe)
 ```bash
+$ cd /
 $ git clone --recurse-submodules --branch=master https://github.com/tfhe/tfhe.git
 $ cd tfhe
 $ mkdir build; cd build
