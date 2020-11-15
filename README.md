@@ -10,6 +10,14 @@ This system is configured and tested for Ubuntu 20.04 LTS
 
 
 #### Dependencies
+* Python3 and Pip3
+``` bash
+$ sudo apt-get install python3 python3-pip
+
+# Check python3 installation
+$ which python3
+> /usr/bin/python3
+```
 
 * ASN.1 Tools (https://pypi.org/project/asn1tools/)
 * PyCryptodome (https://pypi.org/project/pycryptodomex/)
@@ -33,12 +41,16 @@ $ make install
 #### Installation Guide
 1. Clone this repository
 ```bash
+$ cd /
 $ git clone https://github.com/kennethsoh/IE-ACHE.git
 $ cd IE-ACHE
+
+# Provide executable permissions if needed
+$ ls -l
+$ chmod u+x *
 ```
 
-2. Copy each sub folder (Client1, Client2, Client3, Cloud, Keygen & Output) into its own virtual machine or hardware machine. <br>
-You will need minimally 4 machines for 1 Client, Cloud, Keygen and Output.
+2. Repeat dependency installation and Step 1 minimally 4 times for 4 different machines: Client(1/2/3), Cloud, Keygen and Output.
 
 3. Assign IP Addresses for machines as follows:<br>
 ```
@@ -50,7 +62,7 @@ Keygen:   192.168.0.3
 Output:   192.168.0.4
 ```
 
-4. Add the service files in 'Services' folder to ```/etc/systemd/system/```. Edit the Users, WorkingDirectory and ExecStart values if necessary.
+4. Add the service files in 'Services' folder to ```/etc/systemd/system/```. Edit the <u>Users</u>, <u>WorkingDirectory</u> and <u>ExecStart</u> values if necessary. Default values assume that this repository is installed at root (/) directory and root user is used. 
 
 5. Start the services on each machine
 ```
