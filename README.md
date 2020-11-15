@@ -31,9 +31,7 @@ $ git clone --recurse-submodules --branch=master https://github.com/tfhe/tfhe.gi
 $ cd tfhe
 $ mkdir build; cd build
 $ ccmake ../src
-
 # Press 'c' to configure, then 'g' to generate
-
 $ make
 $ make install
 ```
