@@ -14,6 +14,10 @@ MD5 checksum of zip file: 558F19E7CDD0B56A6AD9EE8808581D04
 * Fast Fully Homomorphic Encryption over the Torus (https://github.com/tfhe/tfhe)
 * Homomorphic encryption and Dragonfly SAE (https://github.com/powderfool000/ambitioushomo)
 
+```bash
+pip install asn1tools pycryptodomex
+```
+
 #### Installation Guide
 1. Download or clone this repository
 ```bash
