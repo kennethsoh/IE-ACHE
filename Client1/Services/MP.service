@@ -3,7 +3,7 @@ Description=MP Service for HE
 
 [Service]
 Type=simple
-User=kenneth
+User=root
 WorkingDirectory=/IE-ACHE
 ExecStart=/usr/bin/python3 /IE-ACHE/Client1/client_dynamic.py
 
