@@ -1,7 +1,8 @@
 # Integer Expressions using Arithmetic Circuit Homomorphic Encryption
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![GitHub repo size](https://img.shields.io/github/repo-size/kennethsoh/IE-ACHE)
 ![GitHub issues](https://img.shields.io/github/issues/kennethsoh/IE-ACHE)
+![GitHub repo size](https://img.shields.io/github/repo-size/kennethsoh/IE-ACHE)
+![Lines of code](https://img.shields.io/tokei/lines/github/kennethsoh/IE-ACHE)
 
 This is an extension of an ongoing research project on Arithmetic Circuit Homomorphic encryption (ACHE) which was implemented based on Fast Fully Homomorphic Encryption over the Torus (TFHE). This iteration focuses on integrating ASN.1 Basic Encoding Rule for the purpose of computing results of integer expressions up to 3 operands. The previous version of the project can be found <a href="https://github.com/powderfool000/ambitioushomo" target="_blank">here</a>.
 
