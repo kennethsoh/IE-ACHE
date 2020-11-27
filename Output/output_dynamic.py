@@ -801,7 +801,10 @@ def handshake(CLIENT1, CLIENT2, CLIENT3, CLIENT4, OPCODE1, OPCODE2, OPCODE3, POS
         o1 = open("opcode1.hacklab", "rb")
         operator1_read = o1.read()
         cl_op.append(operator1_read)
-
+        o = open("operator.txt", "w")
+        o.write(OPERATION1)
+        o.close()
+        
         if 'OPERATION2' in globals():
             # Write OPERATION 2 to operation file
             o2 = open("opcode2", "w")
@@ -811,6 +814,9 @@ def handshake(CLIENT1, CLIENT2, CLIENT3, CLIENT4, OPCODE1, OPCODE2, OPCODE3, POS
             o2 = open("opcode2.hacklab", "rb")
             operator2_read = o2.read()
             cl_op.append(operator2_read)
+            o = open("operator.txt", "w")
+            o.write(OPERATION2)
+            o.close()
         else:
             None
 
@@ -823,6 +829,9 @@ def handshake(CLIENT1, CLIENT2, CLIENT3, CLIENT4, OPCODE1, OPCODE2, OPCODE3, POS
             o3 = open("opcode3.hacklab", "rb")
             operator3_read = o3.read()
             cl_op.append(operator3_read)
+            o = open("operator.txt", "w")
+            o.write(OPERATION3)
+            o.close()
         else:
             None
 
@@ -1003,22 +1012,26 @@ def handshake(CLIENT1, CLIENT2, CLIENT3, CLIENT4, OPCODE1, OPCODE2, OPCODE3, POS
     print('Answer data file size: ', os.path.getsize('answer.data'))
 
     os.system('md5sum answer.data')
-
-    secret_key = 'secret.key'
-    answer_data = 'answer.data'
-    subprocess.call('./multi_verif32')
-    #if(int(LASTOP) == 1):
-        #print("multiverif32")
-    #   subprocess.call('./multi_verif32')
-    #elif(int(LASTOP) == 2):
-        #print("multiverif32")
-    #   subprocess.call('./multi_verif32')
-    #elif(int(LASTOP) == 3):
-        #print("multiverif32")
-    #   subprocess.call('./multi_verif32')
-    #elif(int(LASTOP) == 4):
-        #print("div_verif")
-    #   subprocess.call('./Div_verif')
+    
+    # If only negativity and bitsize exists in answer.data
+    if ((os.path.getsize('answer.data')) <= 162304):
+        print('Computation failure: Answer Bit Size is too large')
+    else:
+        secret_key = 'secret.key'
+        answer_data = 'answer.data'
+        subprocess.call('./multi_verif32')
+        #if(int(LASTOP) == 1):
+            #print("multiverif32")
+            #subprocess.call('./multi_verif32')
+        #elif(int(LASTOP) == 2):
+            #print("multiverif32")
+            #subprocess.call('./multi_verif32')
+        #elif(int(LASTOP) == 3):
+            #print("multiverif32")
+            #subprocess.call('./multi_verif32')
+        #elif(int(LASTOP) == 4):
+            #print("div_verif")
+            #subprocess.call('./Div_verif')
 
     stop = time.perf_counter()
     time_elapsed1 = round((stop - dragonfly_time), 3)
