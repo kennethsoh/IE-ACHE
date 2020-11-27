@@ -20,13 +20,13 @@ $ which python3
 > /usr/bin/python3
 ```
 
-* ASN.1 Tools (https://pypi.org/project/asn1tools/)
-* PyCryptodome (https://pypi.org/project/pycryptodomex/)
+* <a href="https://pypi.org/project/asn1tools/" target="_blank">ASN.1 Tools</a>
+* <a href="https://pypi.org/project/pycryptodomex/" target="_blank">PyCryptodome</a>
 ```bash
 $ pip3 install asn1tools pycryptodomex
 ```
 
-* Fast Fully Homomorphic Encryption over the Torus (https://github.com/tfhe/tfhe)
+* <a href="https://github.com/tfhe/tfhe" target="_blank">Fast Fully Homomorphic Encryption over the Torus</a>
 ```bash
 $ cd /
 $ git clone --recurse-submodules --branch=master https://github.com/tfhe/tfhe.git
