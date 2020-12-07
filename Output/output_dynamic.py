@@ -20,7 +20,7 @@ import select
 
 # THE PURPOSE OF THIS FILE IS TO HANDLE USER INPUT AND REQUEST FOR DRAGONFLY KEY EXCHANGE TO BE COMPLETED
 
-asn1_file = asn1tools.compile_files("asntest.asn")
+asn1_file = asn1tools.compile_files("declaration.asn")
 
 def validateIP(IP: str) -> str:
     try:

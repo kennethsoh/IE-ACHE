@@ -1,6 +1,14 @@
 TEST DEFINITIONS ::= BEGIN
-    DataMd5 ::=SEQUENCE{
+    DataMd5 ::= SEQUENCE{
         data IA5String
+    }
+
+    DataDragonflyVerif ::= SEQUENCE{
+        code INTEGER
+    }
+
+    DataIntiate ::= SEQUENCE{
+        code INTEGER
     }
 
     DataMac ::= SEQUENCE {
@@ -8,7 +16,8 @@ TEST DEFINITIONS ::= BEGIN
     }
 
     DataKey ::= SEQUENCE {
-        data OCTET STRING
+        key OCTET STRING
+        nbit OCTET STRING
     }
 
     DataScalarElement ::= SEQUENCE {

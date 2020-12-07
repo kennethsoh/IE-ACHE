@@ -35,7 +35,7 @@ import threading
 lock = threading.Lock()
 
 #Compile asn1 file for secret_key
-asn1_file = asn1tools.compile_files('asntest.asn')
+asn1_file = asn1tools.compile_files('declaration.asn')
 
 #create tcp/ip socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -639,33 +639,45 @@ class ClientThread(threading.Thread):
 
             PMK_Key = ap.confirm_exchange(sta_token)
 
-            # Running c++ Adder_alice to get the secret key
+            # Sending keys to OUTPUT and CLIENTs
             print ("Getting keys...\n")
             lock.acquire()
-            #subprocess.call("./Adder_alice")
 
             print("Printing secret key...\n")
             secret_key = "secret.key"
 
+            print("Printing nbit key...\n")
+            nbit_key = "nbit.key"
+
             output_secret_key = encrypting(PMK_Key, secret_key)
             print("This file ", output_secret_key, " is encrypted secret key\n")
-            # Open the file and read its content
-            # lock.acquire()
+            
+            output_nbit_key = encrypting(PMK_Key, nbit_key)
+            print("This file ", output_nbit_key, " is encrypted nbit key\n")
+
             s = open(output_secret_key, "rb")
-            content = s.read(8192)
+            keycontent = s.read(8192)
+
+            t = open(output_nbit_key, "rb")
+            nbitcontent = t.read(8192)
 
             #Encode key in BER format
-            priv_key_BER = asn1_file.encode('DataKey', {'data': content})
+            priv_key_BER = asn1_file.encode('DataKey', {'data': keycontent})
 
             # Send the BER encoded file to the peer
-            while (content):
+            while (keycontent and nbitcontent):
                 self.connection.sendall(priv_key_BER)
                 content = s.read(8192)
-                priv_key_BER = asn1_file.encode('DataKey', {'data': content})
+                nbitkeycontent = t.read(8192)
+                priv_key_BER = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitcontent})
             s.close()
-            print('Original file size: ', os.path.getsize(secret_key))
-            print ('Encrypted file size: ', os.path.getsize(output_secret_key))
+            print('Original secret key file size: ', os.path.getsize(secret_key))
+            print ('Encrypted secret key file size: ', os.path.getsize(output_secret_key))
             os.system("md5sum secret.key")
+
+            print('Original nbit key file size: ', os.path.getsize(nbit_key))
+            print ('Encrypted nbit key file size: ', os.path.getsize(output_nbit_key))
+            os.system("md5sum nbit.key")
 
             lock.release()
 
@@ -679,8 +691,8 @@ def handshake():
 
     #dragon_time_start = time.perf_counter()
 
-    # Generate secret.key once only
-    subprocess.call("./Adder_alice")
+    # Generate secret.key once only  NOTE: Change to alice for addition of nbitkey
+    subprocess.call("./alice")
     
     #alice_done = time.perf_counter()
     #f = open('timings.txt' ,'a')
@@ -718,7 +730,7 @@ def handshake():
 
 def tests():
     """
-    Test the fucking Curve class.
+    Test the Curve class.
 
     See Understanding Cryptography ECC Section.
     """

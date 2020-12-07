@@ -16,7 +16,7 @@ from optparse import *
 import sys
 import select
 
-asn1_file = asn1tools.compile_files("asntest.asn")
+asn1_file = asn1tools.compile_files("declaration.asn")
 
 #retrieve local hostname
 local_hostname = socket.gethostname()

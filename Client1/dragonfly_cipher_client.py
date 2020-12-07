@@ -18,7 +18,7 @@ from optparse   import *
 import sys
 import select
 
-asn1_file = asn1tools.compile_files("asntest.asn")
+asn1_file = asn1tools.compile_files("declaration.asn")
 
 #Create tcp/ip socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -46,9 +46,9 @@ def cipher():
         
         # Run Adder_alice to get ciphertext
         print("Getting ciphertext...\n")
-        subprocess.call("./alice1")
+        subprocess.call("./alice")
         print("Printing ciphertext...\n")
-        cloud_data = "cloud1.data"
+        cloud_data = "cloud.data"
         print("This file ", cloud_data, "is our ciphertext\n")
         
         f = open(cloud_data, "rb")

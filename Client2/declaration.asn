@@ -1,27 +1,5 @@
 TEST DEFINITIONS ::= BEGIN
-    DataUserInput ::= SEQUENCE{
-	ipaddress IPADDRESSES,
-	operation OPERATIONS,
-	postfix POSTFIX
-    }
-
-    IPADDRESSES ::= SEQUENCE{
-	ipaddress1 OCTET STRING OPTIONAL,
-	ipaddress2 OCTET STRING OPTIONAL,
-	ipaddress3 OCTET STRING OPTIONAL
-	
-    }
-
-    OPERATIONS ::= SEQUENCE{
-	operation1 OCTET STRING OPTIONAL,
-	operation2 OCTET STRING OPTIONAL
-    }
-
-    POSTFIX ::= SEQUENCE {
-	postfix OCTET STRING OPTIONAL
-    }
-
-    DataMd5 ::= SEQUENCE{
+    DataMd5 ::=SEQUENCE{
         data IA5String
     }
 
@@ -30,7 +8,8 @@ TEST DEFINITIONS ::= BEGIN
     }
 
     DataKey ::= SEQUENCE {
-        data OCTET STRING
+        key OCTET STRING
+        nbit OCTET STRING
     }
 
     DataScalarElement ::= SEQUENCE {
