@@ -45,6 +45,7 @@ int main()
    
    getline(read, sLine);
    unsigned long long negative = std::bitset<32>(sLine).to_ullong(); // Convert 32 bits to integer (Negativity code)
+   std::cout << "Negativity: " << negative << "\n";
    
    ++line_no;
    getline(read, sLine); 
@@ -101,6 +102,7 @@ int main()
     for (int i=0; i<32; i++) { // line 0 negtivity
 	bootsSymEncrypt(&ciphertextnegative[i], (negative>>i)&1, nbitkey);
     }
+   	std::cout << "Negativity: " << negative << "\n";
     for (int i=0; i<32; i++) { // line 1 bit size
 	bootsSymEncrypt(&ciphertextbit[i], (bitcount>>i)&1, nbitkey);
     }
@@ -515,7 +517,7 @@ int main()
        fclose(nbit_key);
 
 	   // export the 64 ciphertexts to a file (for the cloud)
-	   FILE* cloud_data = fopen("cloud.data","ab"); // TODO change to wb
+	   FILE* cloud_data = fopen("cloud.data","wb"); // TODO change to wb
 	   for (int i=0; i<32; i++)
         export_gate_bootstrapping_ciphertext_toFile(cloud_data, &ciphertextnegative[i], nbitparams);
 	   for (int i=0; i<32; i++)

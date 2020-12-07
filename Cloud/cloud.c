@@ -777,7 +777,7 @@ int main() {
 	// add(ciphertextnegative, carry1, ciphertextnegative1, ciphertextnegative2, ciphertextcarry1, 32, nbitcloudkey); // NOTE
 
 	// Decrypts Negative1
-	int32_t int_negative1;
+	int32_t int_negative1 = 0;
     	for (int i=0; i<32; i++) {
        	int ai = bootsSymDecrypt(&ciphertextnegative1[i],nbitkey)>0;
        	int_negative1 |= (ai<<i); }
@@ -788,8 +788,8 @@ int main() {
 		int_negative1 = 1;}
     	
 	// Decrypts Negative2
-	int32_t int_negative2;
-    	for (int i=0; i<32; i++) {
+	int32_t int_negative2 = 0;
+	for (int i=0; i<32; i++) {
        	int ai = bootsSymDecrypt(&ciphertextnegative2[i],nbitkey)>0;
        	int_negative2 |= (ai<<i); }
     	std::cout << int_negative2 << " => negative2" << "\n";
@@ -844,9 +844,9 @@ int main() {
 	
 	fclose(cloud_data);
 	
-	// If trying to multiply a 128 bit number
-	if ((int_op == 4) && (int_bit >= 128)){
-    		std::cout << "Cannot multiply 128 bit number!" << "\n";
+	// If trying to multiply a 256 bit number
+	if ((int_op == 4) && (int_bit >= 256)){
+    		std::cout << "Cannot multiply 256 bit number!" << "\n";
 		fclose(answer_data);
 		return 126;
 	}

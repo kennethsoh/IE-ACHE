@@ -65,14 +65,20 @@ Output:   192.168.0.4
 
 4. Add the service files in 'Services' folder to ```/etc/systemd/system/```. Edit the <u>Users</u>, <u>WorkingDirectory</u> and <u>ExecStart</u> values if necessary. Default values assume that this repository is installed at root (/) directory and root user is used. 
 
-5. Start the services on each machine
+5. Recompile c files
+```bash
+$ python3 compile_c.py
+> 9 files compiled
+```
+
+6. Start the services on each machine
 ```
 $ systemctl daemon-reload
 $ systemctl enable MP MP2
 $ systemctl start MP MP2
 ```
 
-6. Run output_dynamic.py on Output machine
+7. Run output_dynamic.py on Output machine
 ```
 Output$ cd /IE-ACHE/Output
 Output$ python3 output_dynamic.py

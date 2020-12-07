@@ -1019,7 +1019,7 @@ def handshake(CLIENT1, CLIENT2, CLIENT3, CLIENT4, OPCODE1, OPCODE2, OPCODE3, POS
     else:
         secret_key = 'secret.key'
         answer_data = 'answer.data'
-        subprocess.call('./multi_verif32')
+        subprocess.call('./verif')
         #if(int(LASTOP) == 1):
             #print("multiverif32")
             #subprocess.call('./multi_verif32')
@@ -1061,7 +1061,7 @@ while (x != 0):
 
     usr_input_time = time.perf_counter()
     infix = InfixConverter()
-    global postfiix_expr
+    global postfix_expr
     postfix_expr = str(infix.toPostfix(expr))
     print('Postfix Expression: ',postfix_expr)
     

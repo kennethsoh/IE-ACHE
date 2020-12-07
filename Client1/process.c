@@ -79,13 +79,13 @@ int main(){
         		if (input2 == "yes"){
         			fprintf(pFile, "00000000000000000000000000000000");
         			fprintf(pFile, "\n");
-        			cout << "Wrote a binary value of 2147483647 to values.txt" << "\n";
+        			cout << "Wrote a binary value of 1073741824 to values.txt" << "\n";
         			break;
         		
         		}else if (input2 == "no"){
         			fprintf(pFile, "00000000000000000000000000000010");
         			fprintf(pFile, "\n");
-        			cout << "Wrote a binary value of -2147483647 to values.txt" << "\n";
+        			cout << "Wrote a binary value of -1073741824 to values.txt" << "\n";
         			break;
         		}else{
         			cout << "Invalid input, please try again" << "\n";
@@ -93,7 +93,7 @@ int main(){
         	}
 		fprintf(pFile, "00000000000000000000000000100000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "01111111111111111111111111111111");
+		fprintf(pFile, "01000000000000000000000000000000");
 		fprintf(pFile, "\n");
 	        fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
@@ -107,13 +107,13 @@ int main(){
         		if (input2 == "yes"){
         			fprintf(pFile, "00000000000000000000000000000000");
         			fprintf(pFile, "\n");
-        			cout << "Wrote a binary value of 9223372036854775807 to values.txt" << "\n";
+        			cout << "Wrote a binary value of 4611686018427387904 to values.txt" << "\n";
         			break;
         		
         		}else if (input2 == "no"){
         			fprintf(pFile, "00000000000000000000000000000010");
         			fprintf(pFile, "\n");
-        			cout << "Wrote a binary value of -9223372036854775807 to values.txt" << "\n";
+        			cout << "Wrote a binary value of -4611686018427387904 to values.txt" << "\n";
         			break;
         		}else{
         			cout << "Invalid input, please try again" << "\n";
@@ -121,9 +121,9 @@ int main(){
         	}
 		fprintf(pFile, "00000000000000000000000001000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000001000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "01111111111111111111111111111111");
+		fprintf(pFile, "01000000000000000000000000000000");
 		fprintf(pFile, "\n");
 	        fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
@@ -137,13 +137,13 @@ int main(){
         		if (input2 == "yes"){
         			fprintf(pFile, "00000000000000000000000000000000");
         			fprintf(pFile, "\n");
-        			cout << "Wrote a binary value of 170141183460469231731687303715884105727 to values.txt" << "\n";
+        			cout << "Wrote a binary value of 85070591730234615865843651857942052864 to values.txt" << "\n";
         			break;
         		
         		}else if (input2 == "no"){
         			fprintf(pFile, "00000000000000000000000000000010");
         			fprintf(pFile, "\n");
-        			cout << "Wrote a binary value of -170141183460469231731687303715884105727 to values.txt" << "\n";
+        			cout << "Wrote a binary value of -85070591730234615865843651857942052864 to values.txt" << "\n";
         			break;
         		}else{
         			cout << "Invalid input, please try again" << "\n";
@@ -151,13 +151,13 @@ int main(){
         	}
         	fprintf(pFile, "00000000000000000000000010000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000001000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000001000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000001000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "01111111111111111111111111111111");
+		fprintf(pFile, "01000000000000000000000000000000");
 		fprintf(pFile, "\n");
 	        fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
@@ -171,12 +171,12 @@ int main(){
         		if (input2 == "yes"){
         			fprintf(pFile, "00000000000000000000000000000000");
         			fprintf(pFile, "\n");
-        			cout << "Wrote a binary value of 57896044618658097711785492504343953926634992332820282019728792003956564819967 to values.txt" << "\n";
+        			cout << "Wrote a binary value of 28948022309329048855892746252171976963317496166410141009864396001978282409984 to values.txt" << "\n";
         			break;
         		}else if (input2 == "no"){
         			fprintf(pFile, "00000000000000000000000000000010");
         			fprintf(pFile, "\n");
-        			cout << "Wrote a binary value of -57896044618658097711785492504343953926634992332820282019728792003956564819967 to values.txt" << "\n";
+        			cout << "Wrote a binary value of -28948022309329048855892746252171976963317496166410141009864396001978282409984 to values.txt" << "\n";
         			break;
         		}else{
         			cout << "Invalid input, please try again" << "\n";
@@ -184,21 +184,21 @@ int main(){
         	}
 		fprintf(pFile, "00000000000000000000000100000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "11111111111111111111111111111111");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "01111111111111111111111111111111");
+		fprintf(pFile, "01000000000000000000000000000000");
 		fprintf(pFile, "\n");
 	        fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
