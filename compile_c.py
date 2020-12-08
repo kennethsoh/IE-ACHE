@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# This file compiles all c files in the repository.
+# This file compiles all c files in the repository
 import os
 import sys
 import glob
