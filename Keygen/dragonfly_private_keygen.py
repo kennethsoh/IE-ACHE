@@ -662,12 +662,12 @@ class ClientThread(threading.Thread):
             nbitcontent = t.read(8192)
 
             #Encode key in BER format
-            priv_key_BER = asn1_file.encode('DataKey', {'data': keycontent})
+            priv_key_BER = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitcontent})
 
             # Send the BER encoded file to the peer
             while (keycontent and nbitcontent):
                 self.connection.sendall(priv_key_BER)
-                content = s.read(8192)
+                keycontent = s.read(8192)
                 nbitkeycontent = t.read(8192)
                 priv_key_BER = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitcontent})
             s.close()
