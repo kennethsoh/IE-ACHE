@@ -691,8 +691,8 @@ def handshake():
 
     #dragon_time_start = time.perf_counter()
 
-    # Generate secret.key once only  NOTE: Change to alice for addition of nbitkey
-    subprocess.call("./alice")
+    # Generate keys once only  
+    subprocess.call("./keygen")
     
     #alice_done = time.perf_counter()
     #f = open('timings.txt' ,'a')

@@ -30,7 +30,7 @@ TEST DEFINITIONS ::= BEGIN
     }
 
     DataKey ::= SEQUENCE {
-        key OCTET STRING
+        key OCTET STRING,
         nbit OCTET STRING
     }
 
