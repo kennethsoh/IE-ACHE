@@ -2,6 +2,10 @@
 import os
 import glob
 
+qn = str(input("Is BOOST Library installed? (yes/no) ")).lower()
+if qn == "no":
+	os.system("apt-get install libboost-all-dev -y")
+
 files = glob.glob("*/*.c")
 
 if len(files) <= 0:
