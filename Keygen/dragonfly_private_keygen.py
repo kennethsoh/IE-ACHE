@@ -668,7 +668,7 @@ class ClientThread(threading.Thread):
             while (keycontent and nbitcontent):
                 self.connection.sendall(priv_key_BER)
                 keycontent = s.read(8192)
-                nbitkeycontent = t.read(8192)
+                nbitcontent = t.read(8192)
                 priv_key_BER = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitcontent})
             s.close()
             print('Original secret key file size: ', os.path.getsize(secret_key))
