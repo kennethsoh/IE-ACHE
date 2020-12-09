@@ -17,18 +17,18 @@ if qn == "no":
 
 elif qn == "yes":
 	files = glob.glob("*/*.c")
-
- 	if len(files) <= 0:
- 		print("No c files found!")
- 		sys.exit()
+	
+	if len(files) <= 0:
+		print("No c files found!")
+		sys.exit()
 
  	for filename in files:
- 		filestriped = filename[:-2]
- 		os.system(f"g++ {filename} -o {filestriped} -ltfhe-spqlios-fma")
+		filestriped = filename[:-2]
+		os.system(f"g++ {filename} -o {filestriped} -ltfhe-spqlios-fma")
+		
+		print(f"\nCompiling {filename}")
+		
+	print(f"\n{len(files)} files compiled. Please check for errors in compliation.")
 
- 		print(f"\nCompiling {filename}")
-
- 	print(f"\n{len(files)} files compiled. Please check for errors in compliation.")
-
-else: 
- 	print("No action taken. Have a nice day :)")
+else:
+	print("No action taken. Have a nice day :)")
