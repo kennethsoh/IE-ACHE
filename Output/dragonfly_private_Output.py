@@ -637,7 +637,7 @@ def handshake():
 		print ('File opened...\n')
 		while True:
 			# print ('Receiving data...\n')
-			keys_BER = sock.recv(8200, socket.MSG_WAITALL)
+			keys_BER = sock.recv(16396, socket.MSG_WAITALL)
 			if (len(keys_BER) > 10):
 				keys_decoded = asn1_file.decode('DataKey', keys_BER)
 				secret_key = keys_decoded.get('key')

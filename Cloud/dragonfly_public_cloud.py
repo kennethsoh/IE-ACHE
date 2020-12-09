@@ -621,7 +621,7 @@ def handshake():
 	with open('cloud.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
 		print ('File opened...\n')
 		while True:
-			key_BER = sock.recv(8200, socket.MSG_WAITALL)
+			key_BER = sock.recv(16396, socket.MSG_WAITALL)
 			if (len(key_BER) > 10):
 				keys_decoded = asn1_file.decode('DataKey', key_BER)
 				cloud_key = keys_decoded.get('key')
