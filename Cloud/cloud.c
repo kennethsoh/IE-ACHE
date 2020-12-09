@@ -656,10 +656,6 @@ int main() {
 	FILE* cloud_key = fopen("cloud.key", "rb");
 	TFheGateBootstrappingCloudKeySet* bk = new_tfheGateBootstrappingCloudKeySet_fromFile(cloud_key);
 	fclose(cloud_key);
-	
-	FILE* secret_key = fopen("secret.key","rb");
-    TFheGateBootstrappingSecretKeySet* key = new_tfheGateBootstrappingSecretKeySet_fromFile(secret_key);
-    fclose(secret_key);
 
 	FILE* nbit_key = fopen("nbit.key","rb");
     TFheGateBootstrappingSecretKeySet* nbitkey = new_tfheGateBootstrappingSecretKeySet_fromFile(nbit_key);
