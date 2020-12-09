@@ -22,7 +22,7 @@ elif qn == "yes":
 		print("No c files found!")
 		sys.exit()
 
- 	for filename in files:
+	for filename in files:
 		filestriped = filename[:-2]
 		os.system(f"g++ {filename} -o {filestriped} -ltfhe-spqlios-fma")
 		
