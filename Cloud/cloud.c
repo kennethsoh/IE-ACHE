@@ -851,7 +851,7 @@ int main() {
 		return 126;
 	}
 
-	//Addition
+	// Addition
 	//if (the operation is add AND (both numbers are positive OR both numbers are negative)) OR (the operation is subtract AND either number is negative)
 	// A+B, [(-A)+(-B)], A-(-B), (-A)-(B)
     if ((int_op == 1 && (int_negative != 1 && int_negative != 2 )) || (int_op == 2 && (int_negative == 1 || int_negative == 2))) {
@@ -885,6 +885,20 @@ int main() {
 			// export the result ciphertexts to a file (for the cloud)
 			for (int i=0; i<32; i++)
 				export_gate_bootstrapping_ciphertext_toFile(answer_data, &result[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);		
 			fclose(answer_data);
 			
 			printf("writing the answer to file...\n");	
@@ -930,6 +944,18 @@ int main() {
 				export_gate_bootstrapping_ciphertext_toFile(answer_data, &result[i], params);
 			for (int i=0; i<32; i++)
 				export_gate_bootstrapping_ciphertext_toFile(answer_data, &result2[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
 			fclose(answer_data);
 				
 			//Clean up
@@ -989,6 +1015,14 @@ int main() {
 				export_gate_bootstrapping_ciphertext_toFile(answer_data, &result3[i], params);
 			for (int i=0; i<32; i++)
 				export_gate_bootstrapping_ciphertext_toFile(answer_data, &result4[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
 			fclose(answer_data);
 				
 			//Clean up
@@ -1122,8 +1156,8 @@ int main() {
 		}
     }
 		
-	//if the operation is subtract OR (the operation is addition AND either one of the values are negative) 
-	// A-B, A+(-B), (-A)+B
+	// Subtraction
+	// If the operation is subtract OR (the operation is addition AND either one of the values are negative) A-B, A+(-B), (-A)+B
 	else if (int_op == 2 || (int_op == 1 && (int_negative == 1 || int_negative == 2))){
 		// Normal Subtraction computation with no negative numbers A-B OR Addition with 2nd number negative A+(-B)
 		if ((int_op == 2 && int_negative == 0) || (int_op == 1 && int_negative == 2)){
@@ -1187,6 +1221,20 @@ int main() {
 				//export the 32 ciphertexts to a file (for the cloud)
 				for (int i=0; i<32; i++)
 					export_gate_bootstrapping_ciphertext_toFile(answer_data, &result1[i], params);
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);						
 				fclose(answer_data);
 				
 				delete_gate_bootstrapping_ciphertext_array(32, temp);
@@ -1278,6 +1326,18 @@ int main() {
 					export_gate_bootstrapping_ciphertext_toFile(answer_data, &result1[i], params);
 				for (int i=0; i<32; i++)
 					export_gate_bootstrapping_ciphertext_toFile(answer_data, &result2[i], params);
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
 				fclose(answer_data);
 				
 				delete_gate_bootstrapping_ciphertext_array(32, temp);
@@ -1412,6 +1472,14 @@ int main() {
 					export_gate_bootstrapping_ciphertext_toFile(answer_data, &result3[i], params);
 				for (int i=0; i<32; i++)
 					export_gate_bootstrapping_ciphertext_toFile(answer_data, &result4[i], params);
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+				for (int i=0; i<32; i++)
+					export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
 				fclose(answer_data);
 				
 			
@@ -2436,6 +2504,14 @@ int main() {
 				export_gate_bootstrapping_ciphertext_toFile(answer_data, &result3[i], params);
 			for (int i=0; i<32; i++)
 				export_gate_bootstrapping_ciphertext_toFile(answer_data, &result4[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
 			fclose(answer_data);
 
 			// clean up all pointers
@@ -2495,6 +2571,18 @@ int main() {
 				export_gate_bootstrapping_ciphertext_toFile(answer_data, &result1[i], params);
 			for (int i=0; i<32; i++)
 				export_gate_bootstrapping_ciphertext_toFile(answer_data, &result2[i], params);
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
+			for (int i=0; i<32; i++)
+				export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextcarry1[i], params);	
 			fclose(answer_data);
 	
 			// clean up all pointers
