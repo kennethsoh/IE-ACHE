@@ -667,9 +667,6 @@ int main() {
 	// if necessary, the params are inside the key
 	const TFheGateBootstrappingParameterSet* nbitparams = nbitkey->params;
 
-
-	printf("Reading the input...\n");
-
 	// Create ciphertext blocks for negative1, bit1, negative2, bit2 and values
 	LweSample* ciphertextnegative1 = new_gate_bootstrapping_ciphertext_array(32, nbitparams);
 	LweSample* ciphertextbit1 = new_gate_bootstrapping_ciphertext_array(32, nbitparams);
@@ -697,6 +694,8 @@ int main() {
 	LweSample* ciphertextcarry1 = new_gate_bootstrapping_ciphertext_array(32, params);
 	LweSample* ciphertextcarry2 = new_gate_bootstrapping_ciphertext_array(32, params);
 
+	printf("Reading input 1...\n");
+
 	// reads ciphertexts from cloud.data
 	FILE* cloud_data = fopen("cloud.data", "rb");
 	for (int i = 0; i<32; i++) // line0
@@ -704,7 +703,6 @@ int main() {
 	for (int i = 0; i<32; i++) // line1
 		import_gate_bootstrapping_ciphertext_fromFile(cloud_data, &ciphertextbit1[i], nbitparams);
 	
-
 	// Decrypts bit size1 
 	int32_t int_bit1 = 0;
     	for (int i=0; i<32; i++) {
@@ -730,6 +728,10 @@ int main() {
 
 	for (int i = 0; i<32; i++) // line10
 	import_gate_bootstrapping_ciphertext_fromFile(cloud_data, &ciphertextcarry1[i], params);
+
+
+	printf("Reading input 2...\n");
+
 
 	for (int i = 0; i<32; i++) // line11
 	import_gate_bootstrapping_ciphertext_fromFile(cloud_data, &ciphertextnegative2[i], nbitparams);
@@ -761,6 +763,8 @@ int main() {
 
 	for (int i = 0; i<32; i++) // line21
 	import_gate_bootstrapping_ciphertext_fromFile(cloud_data, &ciphertextcarry2[i], params);
+	
+	printf("Reading operation code...\n");
 	
 	// Get Operation Code from File
 	int32_t int_op;
