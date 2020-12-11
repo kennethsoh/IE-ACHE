@@ -823,7 +823,7 @@ def cipher(client_address):
                     # BUFFER_SIZE -=10
 
                     print("Length of cloud data",len(cloud_data))
-                    print(cloud_data)
+                    #print(cloud_data)
                     cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
                     cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
 
@@ -977,7 +977,7 @@ def cipher_ab(client_address):
 
                     cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
                     cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
-                    print ('Cloud Data: ', cloud_data_decoded_raw)
+                    
 
                     #Writing data
                     f.write(cloud_data_decoded_raw)
@@ -1132,7 +1132,7 @@ def cipher2(client_address):
 
                     cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
                     cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
-                    print(cloud_data)
+                    #print(cloud_data)
 
                     #Writing to file
                     f.write(cloud_data_decoded_raw)
@@ -1213,6 +1213,7 @@ def compute():
     
     operator = int(opList.pop(0))
 
+    print("Starting computation process")
 
     # NOTE: change the subprocess file as required, when available
     if operator == 1:
