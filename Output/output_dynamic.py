@@ -1076,6 +1076,18 @@ while (x != 0):
     print(opList)
     opNum = len(opList)
     
+    # Filter user expression here
+    if re.search("[*,+]", opList):
+        print("This operation cannot be processed")
+        sys.exit()
+    elif re.search("[+,*]", opList):
+        print("This operation cannot be processed")
+        sys.exit()
+    elif re.search("[*,*]", opList):
+        print("This operation cannot be processed")
+        sys.exit()
+
+    
     global LASTOP
 
 
