@@ -1077,17 +1077,13 @@ while (x != 0):
     opNum = len(opList)
     
     # Filter user expression here
-    if re.search("[*,+]", opList):
-        print("This operation cannot be processed")
+    if opList.count("+") == 1 and opList.count("*") == 1:
+        print("This addition and multiplication operation cannot be processed")
         sys.exit()
-    elif re.search("[+,*]", opList):
-        print("This operation cannot be processed")
+    elif opList.count("*") == 2:
+        print("This double multiplication operation cannot be processed")
         sys.exit()
-    elif re.search("[*,*]", opList):
-        print("This operation cannot be processed")
-        sys.exit()
-
-    
+   
     global LASTOP
 
 
