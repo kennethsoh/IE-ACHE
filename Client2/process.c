@@ -121,7 +121,7 @@ int main(){
         	}
 		fprintf(pFile, "00000000000000000000000001000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "00000000000000000000000001000000");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
 		fprintf(pFile, "01000000000000000000000000000000");
 		fprintf(pFile, "\n");
@@ -151,11 +151,11 @@ int main(){
         	}
         	fprintf(pFile, "00000000000000000000000010000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "00000000000000000000000001000000");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "00000000000000000000000001000000");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
-		fprintf(pFile, "00000000000000000000000001000000");
+		fprintf(pFile, "00000000000000000000000000000000");
 		fprintf(pFile, "\n");
 		fprintf(pFile, "01000000000000000000000000000000");
 		fprintf(pFile, "\n");
@@ -214,6 +214,8 @@ int main(){
    	std::cout << "Successfully written values to values.txt" << "\n";
    	return 0;
 }
+
+
 
 
 

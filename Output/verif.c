@@ -1287,7 +1287,7 @@ int main() {
 	else if (int_op == 4)
 	{
     	std::cout << "Result for " << int_bit << " bit Multiplication computation" << "\n" << "\n";
-    	if (int_bit == 128)
+    	if (int_bit == 256)
 		{
     	    LweSample* finalresult1 = new_gate_bootstrapping_ciphertext_array(32, params);
 	    	LweSample* finalresult2 = new_gate_bootstrapping_ciphertext_array(32, params);
@@ -1390,7 +1390,7 @@ int main() {
 	    	std::string binary6 = std::bitset<32>(int_answer6).to_string();
 	    	std::string binary7 = std::bitset<32>(int_answer7).to_string();
 	    	std::string binary8 = std::bitset<32>(int_answer8).to_string();
-	    	std::string binary_combined = binary1 + binary2 + binary3 + binary4 + binary5 + binary6 + binary7 + binary8;
+	    	std::string binary_combined = binary8 + binary7 + binary6 + binary5 + binary4 + binary3 + binary2 + binary1;
 
 	    	int length = binary_combined.length();
 	    	char char_array[length + 1];
@@ -1447,7 +1447,7 @@ int main() {
     	
     	}
     	
-		else if (int_bit == 64)
+		else if (int_bit == 128)
 		{
     	   	LweSample* finalresult = new_gate_bootstrapping_ciphertext_array(32, params);
 	    	LweSample* finalresult2 = new_gate_bootstrapping_ciphertext_array(32, params);
@@ -1503,7 +1503,7 @@ int main() {
 	    	std::string binary2 = std::bitset<32>(int_answer2).to_string();
 	    	std::string binary3 = std::bitset<32>(int_answer3).to_string();
 	    	std::string binary4 = std::bitset<32>(int_answer4).to_string();
-	    	std::string binary_combined = binary1 + binary2 + binary3 + binary4;
+	    	std::string binary_combined = binary4 + binary3 + binary2 + binary1;
 
 	    	int length = binary_combined.length();
 	    	char char_array[length + 1];
@@ -1555,7 +1555,7 @@ int main() {
     	
     	}
 		
-		else if (int_bit == 32)
+		else if (int_bit == 64)
 		{
     	    LweSample* finalresult = new_gate_bootstrapping_ciphertext_array(32, params);
 	    	LweSample* finalresult2 = new_gate_bootstrapping_ciphertext_array(32, params);
@@ -1587,7 +1587,7 @@ int main() {
 	    
 	    	std::string binary1 = std::bitset<32>(int_answer).to_string();
 	    	std::string binary2 = std::bitset<32>(int_answer2).to_string();
-	    	std::string binary_combined = binary1 + binary2;
+	    	std::string binary_combined = binary2 + binary1;
 
 	    	int length = binary_combined.length();
 	    	char char_array[length + 1];
