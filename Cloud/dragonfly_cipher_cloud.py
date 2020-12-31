@@ -1292,17 +1292,29 @@ def compute_final():
     CL_C = ipList.pop()
     numClList.pop(0)
     cipher2((CL_C, 4381))
+    
+    if int(opList[0]) == 2:
+        with open('cloud.data', 'rb') as c:
+            cloud = c.read(8192)
+            with open('answer.data', 'ab') as a:
+                while cloud:
+                    a.write(cloud)
+                    cloud = c.read(8192)
+        os.system('cp answer.data cloud.data')
+        os.remove('answer.data')
+        compute()
 
-
-    # copy binary contents of answer.data to append to cloud.data
-    with open('answer.data', 'rb') as a:
-        answer = a.read(8192)
-        with open('cloud.data', 'ab') as c:
-            while answer:
-                c.write(answer)
-                answer = a.read(8192)
-    os.remove('answer.data')
-    compute()
+    else:
+        
+        # copy binary contents of answer.data to append to cloud.data
+        with open('answer.data', 'rb') as a:
+            answer = a.read(8192)
+            with open('cloud.data', 'ab') as c:
+                while answer:
+                    c.write(answer)
+                    answer = a.read(8192)
+        os.remove('answer.data')
+        compute()
     
 def answer():
 
