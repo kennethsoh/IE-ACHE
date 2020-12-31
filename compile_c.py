@@ -27,7 +27,9 @@ elif qn == "yes":
 		os.system(f"g++ {filename} -o {filestriped} -ltfhe-spqlios-fma")
 		
 		print(f"\nCompiling {filename}")
-		
+	
+	
+	os.system("chmod u+x */*")	
 	print(f"\n{len(files)} files compiled. Please check for errors in compliation.")
 
 else:
