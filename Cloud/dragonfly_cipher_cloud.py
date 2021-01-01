@@ -672,6 +672,9 @@ def handshake():
     postfixList = " ".join(postfix)
     postfixList = postfixList.split()
     print("POSTFIX LIST", postfixList)
+
+    global flip 
+    flip = False
     
     numClList = re.findall("[a-zA-Z]", postfix)
     sock_output.close()
@@ -716,6 +719,10 @@ def handshake():
                 print(ipList)
                 compute_final()
             elif (len(ipList) > 1) and (len(numClList) >1):
+                if (len(ipList) == 2):
+                    flip = True
+                else:
+                    flip = False
                 print(ipList)
                 computation()
             else:
@@ -1293,7 +1300,7 @@ def compute_final():
     numClList.pop(0)
     cipher2((CL_C, 4381))
     
-    if int(opList[0]) == 2:
+    if flip == True:
         with open('cloud.data', 'rb') as c:
             cloud = c.read(8192)
             with open('answer.data', 'ab') as a:
