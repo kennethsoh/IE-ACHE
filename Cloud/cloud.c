@@ -829,14 +829,16 @@ int main() {
 	
 	// Compare bit sizes
 	int32_t int_bit = 0;
-	if ((int_op == 4) && (int_bit1 == int_bit2)){
-		int_bit = (int_bit1 * 2);
+	if (int_op == 4){
+		if (int_bit1 >= int_bit2){int_bit = (int_bit1 * 2);}
+		else{int_bit = (int_bit2 * 2);}
 		for (int i=0; i<32; i++) { 
 			bootsSymEncrypt(&ciphertextbit[i], (int_bit>>i)&1, nbitkey);}
 		for (int i = 0; i<32; i++)
 			export_gate_bootstrapping_ciphertext_toFile(answer_data, &ciphertextbit[i], nbitparams);
     			std::cout << int_bit << " written to answer.data" << "\n";
-		int_bit = 32;
+		if (int_bit1 >= int_bit2){int_bit = int_bit1;}
+		else{int_bit = int_bit2;}
 
 	}
 	else if (int_bit1 >= int_bit2) {
