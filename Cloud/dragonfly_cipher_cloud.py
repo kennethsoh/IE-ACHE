@@ -746,8 +746,8 @@ def computation():
     # pop the next last element of ipList
     CL_B = ipList.pop()
     numClList.pop(0)
-    cipher_ab((CL_B, 4381))
-    cipher((CL_A, 4381))
+    cipher((CL_B, 4381))
+    cipher_ab((CL_A, 4381))
 
     # At this stage cloud.data should contain the ciphertexts from 2 CL
     compute()
