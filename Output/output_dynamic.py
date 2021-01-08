@@ -1117,7 +1117,7 @@ while (x != 0):
         elif (OPERATION1 == '-'):
             OPERATION1 = "2"
         elif (OPERATION1 == '*'):
-            OPERATION1 = "3"
+            OPERATION1 = "4"
         elif (OPERATION1 == '/'):
             OPERATION1 = "4"
         else:
@@ -1154,7 +1154,7 @@ while (x != 0):
         elif (OPERATION1 == '-'):
             OPERATION1 = "2"
         elif (OPERATION1 == '*'):
-            OPERATION1 = "3"
+            OPERATION1 = "4"
         elif (OPERATION1 == '/'):
             OPERATION1 = "4"
         else:
@@ -1164,7 +1164,7 @@ while (x != 0):
         elif (OPERATION2 == '-'):
             OPERATION2 = "2"
         elif (OPERATION2 == '*'):
-            OPERATION2 = "3"
+            OPERATION2 = "4"
         elif (OPERATION2 == '/'):
             OPERATION2 = "4"
         else:
@@ -1209,7 +1209,7 @@ while (x != 0):
         elif (OPERATION1 == '-'):
             OPERATION1 = "2"
         elif (OPERATION1 == '*'):
-            OPERATION1 = "3"
+            OPERATION1 = "4"
         elif (OPERATION1 == '/'):
             OPERATION1 = "4"
         else:
@@ -1219,7 +1219,7 @@ while (x != 0):
         elif (OPERATION2 == '-'):
             OPERATION2 = "2"
         elif (OPERATION2 == '*'):
-            OPERATION2 = "3"
+            OPERATION2 = "4"
         elif (OPERATION2 == '/'):
             OPERATION2 = "4"
         else:
@@ -1229,7 +1229,7 @@ while (x != 0):
         elif (OPERATION3 == '-'):
             OPERATION3 = "2"
         elif (OPERATION3 == '*'):
-            OPERATION3 = "3"
+            OPERATION3 = "4"
         elif (OPERATION3 == '/'):
             OPERATION3 = "4"
         else:
