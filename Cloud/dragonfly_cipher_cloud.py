@@ -1269,11 +1269,14 @@ def compute():
         f.write(str(compute_time_final))
         f.close()
     elif operator == 4:
+        o = open('operator.txt', 'w')
+        o.write("4") # cloud uses 4 to denote multiplication
+        o.close()
         compute_time_start = time.perf_counter()
         # The user has chosen the Division function
         # Run C++ Divide_cloud to compute answer
-        subprocess.call("./div")
-        print("Printing division answer data...\n")
+        subprocess.call("./cloud")
+        print("Printing Multiplication answer data...\n")
         compute_time_stop = time.perf_counter()
         compute_time_final = round((compute_time_stop - compute_time_start), 3)
         f = open('timings.txt','a')
