@@ -16,6 +16,9 @@ if qn == "no":
             sys.exit()
 
             for filename in files:
+                if filename == "cloud.c":
+                    filestriped = filename[:-2]
+                    os.system(f"g++ {filename} -o {filestriped} -ltfhe-spqlios-fma -fopenmp")
                 filestriped = filename[:-2]
                 os.system(f"g++ {filename} -o {filestriped} -ltfhe-spqlios-fma")
 
@@ -33,6 +36,9 @@ if qn == "no":
             sys.exit()
 
         for filename in files:
+            if filename == "cloud.c":
+                filestriped = filename[:-2]
+                os.system(f"g++ {filename} -o {filestriped} -ltfhe-spqlios-fma -fopenmp")
             filestriped = filename[:-2]
             os.system(f"g++ {filename} -o {filestriped} -ltfhe-spqlios-fma")
 
@@ -52,6 +58,9 @@ elif qn == "yes":
         sys.exit()
 
     for filename in files:
+        if filename == "cloud.c":
+            filestriped = filename[:-2]
+            os.system(f"g++ {filename} -o {filestriped} -ltfhe-spqlios-fma -fopenmp")
         filestriped = filename[:-2]
         os.system(f"g++ {filename} -o {filestriped} -ltfhe-spqlios-fma")
 
