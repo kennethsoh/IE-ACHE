@@ -16,7 +16,7 @@ from optparse import *
 import sys
 import select
 
-asn1_file = asn1tools.compile_files("asntest.asn")
+asn1_file = asn1tools.compile_files("declaration.asn")
 
 #retrieve local hostname
 local_hostname = socket.gethostname()
@@ -672,6 +672,9 @@ def handshake():
     postfixList = " ".join(postfix)
     postfixList = postfixList.split()
     print("POSTFIX LIST", postfixList)
+
+    global flip 
+    flip = False
     
     numClList = re.findall("[a-zA-Z]", postfix)
     sock_output.close()
@@ -716,6 +719,10 @@ def handshake():
                 print(ipList)
                 compute_final()
             elif (len(ipList) > 1) and (len(numClList) >1):
+                if (len(ipList) == 2):
+                    flip = True
+                else:
+                    flip = False
                 print(ipList)
                 computation()
             else:
@@ -733,14 +740,14 @@ def computation():
     # pop the last element of ipList
     CL_A = ipList.pop()
     numClList.pop(0)
-    cipher((CL_A, 4381))
 
     time.sleep(5)
 
     # pop the next last element of ipList
     CL_B = ipList.pop()
     numClList.pop(0)
-    cipher_ab((CL_B, 4381))
+    cipher((CL_B, 4381))
+    cipher_ab((CL_A, 4381))
 
     # At this stage cloud.data should contain the ciphertexts from 2 CL
     compute()
@@ -823,7 +830,7 @@ def cipher(client_address):
                     # BUFFER_SIZE -=10
 
                     print("Length of cloud data",len(cloud_data))
-                    print(cloud_data)
+                    #print(cloud_data)
                     cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
                     cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
 
@@ -977,7 +984,7 @@ def cipher_ab(client_address):
 
                     cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
                     cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
-                    print ('Cloud Data: ', cloud_data_decoded_raw)
+                    
 
                     #Writing data
                     f.write(cloud_data_decoded_raw)
@@ -1132,7 +1139,7 @@ def cipher2(client_address):
 
                     cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
                     cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
-                    print(cloud_data)
+                    #print(cloud_data)
 
                     #Writing to file
                     f.write(cloud_data_decoded_raw)
@@ -1213,6 +1220,7 @@ def compute():
     
     operator = int(opList.pop(0))
 
+    print("Starting computation process")
 
     # NOTE: change the subprocess file as required, when available
     if operator == 1:
@@ -1261,11 +1269,14 @@ def compute():
         f.write(str(compute_time_final))
         f.close()
     elif operator == 4:
+        o = open('operator.txt', 'w')
+        o.write("4") # cloud uses 4 to denote multiplication
+        o.close()
         compute_time_start = time.perf_counter()
         # The user has chosen the Division function
         # Run C++ Divide_cloud to compute answer
-        subprocess.call("./div")
-        print("Printing division answer data...\n")
+        subprocess.call("./cloud")
+        print("Printing Multiplication answer data...\n")
         compute_time_stop = time.perf_counter()
         compute_time_final = round((compute_time_stop - compute_time_start), 3)
         f = open('timings.txt','a')
@@ -1291,17 +1302,29 @@ def compute_final():
     CL_C = ipList.pop()
     numClList.pop(0)
     cipher2((CL_C, 4381))
+    
+    if flip == True:
+        with open('cloud.data', 'rb') as c:
+            cloud = c.read(8192)
+            with open('answer.data', 'ab') as a:
+                while cloud:
+                    a.write(cloud)
+                    cloud = c.read(8192)
+        os.system('cp answer.data cloud.data')
+        os.remove('answer.data')
+        compute()
 
-
-    # copy binary contents of answer.data to append to cloud.data
-    with open('answer.data', 'rb') as a:
-        answer = a.read(8192)
-        with open('cloud.data', 'ab') as c:
-            while answer:
-                c.write(answer)
-                answer = a.read(8192)
-    os.remove('answer.data')
-    compute()
+    else:
+        
+        # copy binary contents of answer.data to append to cloud.data
+        with open('answer.data', 'rb') as a:
+            answer = a.read(8192)
+            with open('cloud.data', 'ab') as c:
+                while answer:
+                    c.write(answer)
+                    answer = a.read(8192)
+        os.remove('answer.data')
+        compute()
     
 def answer():
 

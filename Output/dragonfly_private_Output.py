@@ -30,7 +30,7 @@ import asn1tools
 import sys
 
 #Compile asn1 file for secret_key
-asn1_file = asn1tools.compile_files('asntest.asn')
+asn1_file = asn1tools.compile_files('declaration.asn')
 
 #create tcp/ip socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -633,36 +633,43 @@ def handshake():
 	#print (decrypted.decode())
 
 	# Open the received secret file from the key generator
-	with open('secret.key.hacklab', 'wb') as s:
+	with open('secret.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
 		print ('File opened...\n')
 		while True:
 			# print ('Receiving data...\n')
-			secret_key_BER = sock.recv(8200, socket.MSG_WAITALL)
-			if (len(secret_key_BER) > 10):
-				secret_key_decoded = asn1_file.decode('DataKey', secret_key_BER)
-				secret_key = secret_key_decoded.get('data')
-				# print ("Secret key grepped: ", secret_key)
+			keys_BER = sock.recv(16396, socket.MSG_WAITALL)
+			if (len(keys_BER) > 10):
+				keys_decoded = asn1_file.decode('DataKey', keys_BER)
+				secret_key = keys_decoded.get('key')
+				nbit_key = keys_decoded.get('nbit')
 				time.sleep(0.001)
-				# print(len(secret_key_BER))
 			else:
 				break
-			if not secret_key:
+			if not (secret_key or nbit_key):
 				break
 			s.write(secret_key)
+			t.write(nbit_key)
 
 		s.close()
+		t.close()
 		print ('Successfully got the file\n')
 
-	print ('Encrypted file size: ', os.path.getsize('secret.key.hacklab'))
-	print ('Decrypting the file...\n')
+	print ('Encrypted secret file size: ', os.path.getsize('secret.key.hacklab'))
+	print ('Encrypted nbit file size: ', os.path.getsize('nbit.key.hacklab'))
+	print ('Decrypting the files...\n')
+
 	decrypted_secret_key = decrypting(PMK_Key, 'secret.key.hacklab')
 	print('Acquired original secret key file size: ', os.path.getsize(decrypted_secret_key))
 	os.system("md5sum secret.key")
- 
+
+	decrypted_nbit_key = decrypting(PMK_Key, 'nbit.key.hacklab')
+	print('Acquired original nbit key file size: ', os.path.getsize(decrypted_nbit_key))
+	os.system("md5sum nbit.key")
+	
 		
 def tests():
 	"""
-	Test the fucking Curve class.
+	Test the Curve class.
 
 	See Understanding Cryptography ECC Section.
 	"""

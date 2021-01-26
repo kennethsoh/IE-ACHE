@@ -37,7 +37,8 @@ TEST DEFINITIONS ::= BEGIN
     }
 
     DataKey ::= SEQUENCE {
-        data OCTET STRING
+        key OCTET STRING,
+        nbit OCTET STRING
     }
 
     DataScalarElement ::= SEQUENCE {

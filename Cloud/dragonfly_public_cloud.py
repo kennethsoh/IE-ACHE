@@ -29,7 +29,7 @@ import asn1tools
 import sys
 
 #Compile ASN1 file for Sending of cloud.key
-asn1_file = asn1tools.compile_files('asntest.asn')
+asn1_file = asn1tools.compile_files('declaration.asn')
 
 #create tcp/ip socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -618,31 +618,37 @@ def handshake():
 	#print (PMK_Key)
 
 	# Open the received cloud key from the key generator
-	with open('cloud.key.hacklab', 'wb') as s:
+	with open('cloud.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
 		print ('File opened...\n')
 		while True:
-			cloud_key_BER = sock.recv(8200, socket.MSG_WAITALL)
-			if (len(cloud_key_BER) > 10):
-				cloud_key_decoded = asn1_file.decode('DataKey', cloud_key_BER)
-				cloud_key = cloud_key_decoded.get('data')
+			key_BER = sock.recv(16396, socket.MSG_WAITALL)
+			if (len(key_BER) > 10):
+				keys_decoded = asn1_file.decode('DataKey', key_BER)
+				cloud_key = keys_decoded.get('key')
+				nbit_key = keys_decoded.get('nbit')
 			else:
 				break
-			# print ('Receiving data...\n')
-			# cloud_key = sock.recv(8192)
-			# print ("Cloud key: ", cloud_key)
-			if not cloud_key:
+			if not (cloud_key or nbit_key):
 				break
 			s.write(cloud_key)
+			t.write(nbit_key)
+
 
 		s.close()
-		print ('Successfully got the file\n')
+		t.close()
+		print ('Successfully got the key files\n')
 
-	print ('Encrypted file size: ', os.path.getsize('cloud.key.hacklab'))
-	print ('Decrypting the file...\n')
+	print ('Encrypted cloudkey file size: ', os.path.getsize('cloud.key.hacklab'))
+	print ('Encrypted nbitkey file size: ', os.path.getsize('nbit.key.hacklab'))
+	print ('Decrypting the files...\n')
+
 	decrypted_cloud_key = decrypting(PMK_Key, 'cloud.key.hacklab')
-	print('Acquired original public key file size: ', os.path.getsize(decrypted_cloud_key))
+	print('Acquired cloud key file size: ', os.path.getsize(decrypted_cloud_key))
 	os.system("md5sum cloud.key")
  
+	decrypted_nbit_key = decrypting(PMK_Key, 'nbit.key.hacklab')
+	print('Acquired nbit key file size: ', os.path.getsize(decrypted_nbit_key))
+	os.system("md5sum nbit.key")
 		
 def tests():
 	"""

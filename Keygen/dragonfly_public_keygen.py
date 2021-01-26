@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 #"""
 #Implements the Dragonfly (SAE) handshake.
 
@@ -13,6 +12,8 @@
 #SAE is build upon the Dragonfly Key Exchange, which is described in https://tools.ietf.org/html/rfc7664.
 
 #https://stackoverflow.com/questions/31074172/elliptic-curve-point-addition-over-a-finite-field-in-python
+
+# THIS FILE IS RESPONSIBLE FOR THE EXCHANGE OF PUBLIC (CLOUD) KEYS BETWEEN KEYGEN AND CLOUD NODES
 #"""
 import time
 import hashlib
@@ -31,7 +32,7 @@ from optparse import *
 import asn1tools
 
 #Compile asn1 file for cloud_key
-asn1_file = asn1tools.compile_files('asntest.asn')
+asn1_file = asn1tools.compile_files('declaration.asn')
 
 #create tcp/ip socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -655,27 +656,44 @@ def handshake():
 				print ("Getting keys...\n")
 				print("Printing cloud key...\n")
 				cloud_key = "cloud.key"
+				nbit_key = "nbit.key"
 
-				output_cloud_key = encrypting(PMK_Key, cloud_key)
-				print("This file ", output_cloud_key, " is encrypted cloud key\n")
-				# Open the file and read its content
-				s = open(output_cloud_key, "rb")
-				content = s.read(8192)
+				# encrypt cloudkey
+				cloudkey = encrypting(PMK_Key, cloud_key)
+				print("This file ", cloudkey, " is encrypted cloud key\n")
+				
+				# encrypt nbitkey
+				nbitkey = encrypting(PMK_Key, nbit_key)
+				print("This file ", nbitkey, " is encrypted nbit key\n")
+				
+				# Open the cloudkey file and read its content
+				s = open(cloudkey, "rb")
+				keycontent = s.read(8192)
 
-				#BER encoded data of cloud.key
-				encoded_cloud_key = asn1_file.encode('DataKey', {'data': content})
-				# print (content)
+				# Open the nbitkey file and read its content
+				t = open(nbitkey, "rb")
+				nbitkeycontent = t.read(8192)
+
+				# BER encoded data of cloud.key and nbit.key, encode first 8192 bits
+				encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
 				
 				# Send the file to the cloud server
-				while (content):
-					connection.send(encoded_cloud_key)
-					# print("Sent", repr(content))
-					content = s.read(8192)
-					encoded_cloud_key = asn1_file.encode('DataKey', {'data': content})
+				while (keycontent and nbitkeycontent):
+					connection.send(encoded_keys)
+					keycontent = s.read(8192)
+					nbitkeycontent = t.read(8192)
+					encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
 				s.close()
-				print('Original file size: ', os.path.getsize(cloud_key))
-				print ('Encrypted file size: ', os.path.getsize(output_cloud_key))
+				t.close()
+
+				print('Original cloud file size: ', os.path.getsize(cloud_key))
+				print ('Encrypted cloud file size: ', os.path.getsize(cloudkey))
 				os.system("md5sum cloud.key")
+
+				print('Original nbit key file size: ', os.path.getsize(nbit_key))
+				print('Encrypted nbit key file size: ', os.path.getsize(nbitkey))
+				os.system("md5sum nbit.key")
+				
 			break
 
 

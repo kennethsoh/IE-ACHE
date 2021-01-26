@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import time
 import hashlib
 import random
@@ -20,7 +21,7 @@ import select
 
 # THE PURPOSE OF THIS FILE IS TO HANDLE USER INPUT AND REQUEST FOR DRAGONFLY KEY EXCHANGE TO BE COMPLETED
 
-asn1_file = asn1tools.compile_files("asntest.asn")
+asn1_file = asn1tools.compile_files("declaration.asn")
 
 def validateIP(IP: str) -> str:
     try:
@@ -1019,7 +1020,7 @@ def handshake(CLIENT1, CLIENT2, CLIENT3, CLIENT4, OPCODE1, OPCODE2, OPCODE3, POS
     else:
         secret_key = 'secret.key'
         answer_data = 'answer.data'
-        subprocess.call('./multi_verif32')
+        subprocess.call('./verif')
         #if(int(LASTOP) == 1):
             #print("multiverif32")
             #subprocess.call('./multi_verif32')
@@ -1061,7 +1062,7 @@ while (x != 0):
 
     usr_input_time = time.perf_counter()
     infix = InfixConverter()
-    global postfiix_expr
+    global postfix_expr
     postfix_expr = str(infix.toPostfix(expr))
     print('Postfix Expression: ',postfix_expr)
     
@@ -1075,6 +1076,14 @@ while (x != 0):
     print(opList)
     opNum = len(opList)
     
+    # Filter user expression here
+    if opList.count("+") == 1 and opList.count("*") == 1:
+        print("This addition and multiplication operation cannot be processed")
+        sys.exit()
+    elif opList.count("*") == 2:
+        print("This double multiplication operation cannot be processed")
+        sys.exit()
+   
     global LASTOP
 
 
@@ -1108,7 +1117,7 @@ while (x != 0):
         elif (OPERATION1 == '-'):
             OPERATION1 = "2"
         elif (OPERATION1 == '*'):
-            OPERATION1 = "3"
+            OPERATION1 = "4"
         elif (OPERATION1 == '/'):
             OPERATION1 = "4"
         else:
@@ -1145,7 +1154,7 @@ while (x != 0):
         elif (OPERATION1 == '-'):
             OPERATION1 = "2"
         elif (OPERATION1 == '*'):
-            OPERATION1 = "3"
+            OPERATION1 = "4"
         elif (OPERATION1 == '/'):
             OPERATION1 = "4"
         else:
@@ -1155,7 +1164,7 @@ while (x != 0):
         elif (OPERATION2 == '-'):
             OPERATION2 = "2"
         elif (OPERATION2 == '*'):
-            OPERATION2 = "3"
+            OPERATION2 = "4"
         elif (OPERATION2 == '/'):
             OPERATION2 = "4"
         else:
@@ -1200,7 +1209,7 @@ while (x != 0):
         elif (OPERATION1 == '-'):
             OPERATION1 = "2"
         elif (OPERATION1 == '*'):
-            OPERATION1 = "3"
+            OPERATION1 = "4"
         elif (OPERATION1 == '/'):
             OPERATION1 = "4"
         else:
@@ -1210,7 +1219,7 @@ while (x != 0):
         elif (OPERATION2 == '-'):
             OPERATION2 = "2"
         elif (OPERATION2 == '*'):
-            OPERATION2 = "3"
+            OPERATION2 = "4"
         elif (OPERATION2 == '/'):
             OPERATION2 = "4"
         else:
@@ -1220,7 +1229,7 @@ while (x != 0):
         elif (OPERATION3 == '-'):
             OPERATION3 = "2"
         elif (OPERATION3 == '*'):
-            OPERATION3 = "3"
+            OPERATION3 = "4"
         elif (OPERATION3 == '/'):
             OPERATION3 = "4"
         else:

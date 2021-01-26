@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import time
 import hashlib
 import random
@@ -31,13 +32,13 @@ def dragonfly():
     #Execute dragonfly private for output machine
     print ('Executing dragonfly code for Output machine.')
 
-    subprocess.run('./dragonfly_private_keygen.py')
+    os.system('python3 dragonfly_private_keygen.py')
 
     
     #Execute dragonfly public for cloud machine
     logging.info("dragonfly cloud")
     print ('executing dragonfly code for CLOUD machine')
-    subprocess.run('./dragonfly_public_keygen.py')
+    os.system('python3 dragonfly_public_keygen.py')
     
     time.sleep(10)
     try:
