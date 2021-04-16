@@ -18,20 +18,21 @@ using boost::multiprecision::int256_t;
 
 int main() {
 
-    //reads the cloud key from file
+    // reads the secret key from file
     FILE* secret_key = fopen("secret.key","rb");
     TFheGateBootstrappingSecretKeySet* key = new_tfheGateBootstrappingSecretKeySet_fromFile(secret_key);
     fclose(secret_key);
 
-	FILE* nbit_key = fopen("nbit.key","rb");
+    // reads the nbit key from file
+    FILE* nbit_key = fopen("nbit.key","rb");
     TFheGateBootstrappingSecretKeySet* nbitkey = new_tfheGateBootstrappingSecretKeySet_fromFile(nbit_key);
     fclose(nbit_key);
 
-    //if necessary, the params are inside the key
+    // if necessary, the params are inside the key
     const TFheGateBootstrappingParameterSet* params = key->params;
 
-	// if necessary, the params are inside the key
-	const TFheGateBootstrappingParameterSet* nbitparams = nbitkey->params;
+    // if necessary, the params are inside the key
+    const TFheGateBootstrappingParameterSet* nbitparams = nbitkey->params;
 
     struct timeval start, end;
     double get_time;
@@ -188,7 +189,8 @@ int main() {
 
 	    	// clean up all pointers
 	    	delete_gate_bootstrapping_ciphertext_array(32, result);
-	   		delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	}
 		
@@ -319,6 +321,7 @@ int main() {
 	    	delete_gate_bootstrapping_ciphertext_array(32, result);
 	    	delete_gate_bootstrapping_ciphertext_array(32, result2);
 	    	delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	}
 		
@@ -473,6 +476,7 @@ int main() {
 	    	delete_gate_bootstrapping_ciphertext_array(32, result3);
 	    	delete_gate_bootstrapping_ciphertext_array(32, result4);
 	    	delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	}
 		
@@ -682,6 +686,7 @@ int main() {
 	    	delete_gate_bootstrapping_ciphertext_array(32, result7);
 	    	delete_gate_bootstrapping_ciphertext_array(32, result8);
 	    	delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	}
     }
@@ -795,6 +800,7 @@ int main() {
 	    // clean up all pointers
 	    delete_gate_bootstrapping_ciphertext_array(32, result);
 	    delete_gate_bootstrapping_secret_keyset(key);
+	    delete_gate_bootstrapping_secret_keyset(nbitkey);
 
     	}
 		
@@ -921,6 +927,7 @@ int main() {
 	    	delete_gate_bootstrapping_ciphertext_array(32, result);
 	    	delete_gate_bootstrapping_ciphertext_array(32, result2);
 	    	delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	
     	}
@@ -1076,6 +1083,7 @@ int main() {
 	    	delete_gate_bootstrapping_ciphertext_array(32, result3);
 	    	delete_gate_bootstrapping_ciphertext_array(32, result4);
 	    	delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	}
 		
@@ -1280,6 +1288,7 @@ int main() {
 	    	delete_gate_bootstrapping_ciphertext_array(32, result7);
 	    	delete_gate_bootstrapping_ciphertext_array(32, result8);
 	    	delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(nbitkey);
     	}
     }
 	
@@ -1444,6 +1453,7 @@ int main() {
 	    	delete_gate_bootstrapping_ciphertext_array(32, finalresult7);
 	    	delete_gate_bootstrapping_ciphertext_array(32, finalresult8);
 	    	delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	}
     	
@@ -1552,6 +1562,7 @@ int main() {
 	    	delete_gate_bootstrapping_ciphertext_array(32, finalresult3);
 	    	delete_gate_bootstrapping_ciphertext_array(32, finalresult4);
 	    	delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	}
 		
@@ -1634,6 +1645,7 @@ int main() {
 	    	delete_gate_bootstrapping_ciphertext_array(32, finalresult);
 	    	delete_gate_bootstrapping_ciphertext_array(32, finalresult2);
 	    	delete_gate_bootstrapping_secret_keyset(key);
+	   	delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	}
     }
