@@ -15,23 +15,37 @@ ifstream read;
 int main()
 {
    // generate a keyset
-   const int minimum_lambda = 110;
-   TFheGateBootstrappingParameterSet* params = new_default_gate_bootstrapping_parameters(minimum_lambda);
+   // const int minimum_lambda = 110;
+   // TFheGateBootstrappingParameterSet* params = new_default_gate_bootstrapping_parameters(minimum_lambda);
 
    // generate a keyset
-   const int minimum_lambda2 = 110;
-   TFheGateBootstrappingParameterSet* nbitparams = new_default_gate_bootstrapping_parameters(minimum_lambda2);
+   // const int minimum_lambda2 = 110;
+   // TFheGateBootstrappingParameterSet* nbitparams = new_default_gate_bootstrapping_parameters(minimum_lambda2);
 
    // generate a random key
-   uint32_t seed[] = { 314, 1592, 657 };
-   tfhe_random_generator_setSeed(seed,3);
-   TFheGateBootstrappingSecretKeySet* key = new_random_gate_bootstrapping_secret_keyset(params);
+   // uint32_t seed[] = { 314, 1592, 657 };
+   // tfhe_random_generator_setSeed(seed,3);
+   // TFheGateBootstrappingSecretKeySet* key = new_random_gate_bootstrapping_secret_keyset(params);
 
-   uint32_t bitseed[] = { 314, 1592, 888 };
-   tfhe_random_generator_setSeed(bitseed,3);
-   TFheGateBootstrappingSecretKeySet* nbitkey = new_random_gate_bootstrapping_secret_keyset(nbitparams);
+   // uint32_t bitseed[] = { 314, 1592, 888 };
+   // tfhe_random_generator_setSeed(bitseed,3);
+   // TFheGateBootstrappingSecretKeySet* nbitkey = new_random_gate_bootstrapping_secret_keyset(nbitparams);
 
-   
+   // Read secret key from file
+   FILE* secret_key = fopen("secret.key","rb");
+   TFheGateBootstrappingSecretKeySet* key = new_tfheGateBootstrappingSecretKeySet_fromFile(secret_key);
+   fclose(secret_key);   
+
+   // Read nbit key from file
+   FILE* nbit_key = fopen("nbit.key","rb");
+   TFheGateBootstrappingSecretKeySet* nbitkey = new_tfheGateBootstrappingSecretKeySet_fromFile(nbit_key);
+   fclose(nbit_key);   
+
+   // if necessary, the params are inside the key
+   const TFheGateBootstrappingParameterSet* params = key->params; 
+
+   // if necessary, the params are inside the key
+   const TFheGateBootstrappingParameterSet* nbitparams = nbitkey->params;
 
    struct timeval start, end;
    double get_time;
@@ -190,7 +204,7 @@ int main()
     delete_gate_bootstrapping_ciphertext_array(32, ciphertext9);
     
     delete_gate_bootstrapping_secret_keyset(key);
-    delete_gate_bootstrapping_parameters(params);
+    delete_gate_bootstrapping_secret_keyset(nbitkey);
    }
    
    if (bitcount == 128) // If bitcount is 128, only need to use up to line 14 as value 2 only needs half of full space (4 lines)
@@ -316,7 +330,7 @@ int main()
     delete_gate_bootstrapping_ciphertext_array(32, ciphertext9);
     
     delete_gate_bootstrapping_secret_keyset(key);
-    delete_gate_bootstrapping_parameters(params);
+    delete_gate_bootstrapping_secret_keyset(nbitkey);
    }
    
    if (bitcount == 64){
@@ -438,7 +452,7 @@ int main()
     delete_gate_bootstrapping_ciphertext_array(32, ciphertext9);
     
     delete_gate_bootstrapping_secret_keyset(key);
-    delete_gate_bootstrapping_parameters(params);
+    delete_gate_bootstrapping_secret_keyset(nbitkey);
     
     }
    else if (bitcount == 32){
@@ -557,7 +571,7 @@ int main()
 	   delete_gate_bootstrapping_ciphertext_array(32, ciphertext9);
 
 	   delete_gate_bootstrapping_secret_keyset(key);
-	   delete_gate_bootstrapping_parameters(params);
+	   delete_gate_bootstrapping_secret_keyset(nbitkey);
     }
     // Timings
     gettimeofday(&end, NULL);

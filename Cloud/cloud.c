@@ -657,9 +657,10 @@ int main() {
 	TFheGateBootstrappingCloudKeySet* bk = new_tfheGateBootstrappingCloudKeySet_fromFile(cloud_key);
 	fclose(cloud_key);
 
+	// reads the nbit key from file
 	FILE* nbit_key = fopen("nbit.key","rb");
-    TFheGateBootstrappingSecretKeySet* nbitkey = new_tfheGateBootstrappingSecretKeySet_fromFile(nbit_key);
-    fclose(nbit_key);
+        TFheGateBootstrappingSecretKeySet* nbitkey = new_tfheGateBootstrappingSecretKeySet_fromFile(nbit_key);
+        fclose(nbit_key);
 
 	// if necessary, the params are inside the key
 	const TFheGateBootstrappingParameterSet* params = bk->params;
@@ -927,6 +928,9 @@ int main() {
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext1);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext9);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);	
+
+			delete_gate_bootstrapping_cloud_keyset(bk);
+			delete_gate_bootstrapping_secret_keyset(nbitkey);
 		}
 
 		//64 Bit Addition
@@ -988,6 +992,9 @@ int main() {
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext9);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext10);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
+
+			delete_gate_bootstrapping_cloud_keyset(bk);
+			delete_gate_bootstrapping_secret_keyset(nbitkey);
 		}
 			
 		//128 Bit Addition
@@ -1065,6 +1072,9 @@ int main() {
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext11);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext12);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
+
+			delete_gate_bootstrapping_cloud_keyset(bk);
+			delete_gate_bootstrapping_secret_keyset(nbitkey);
 		}
 			
 		//256 Bit Addition
@@ -1173,6 +1183,9 @@ int main() {
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext15);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext16);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
+
+			delete_gate_bootstrapping_cloud_keyset(bk);
+			delete_gate_bootstrapping_secret_keyset(nbitkey);
 		}
     }
 		
@@ -1279,6 +1292,9 @@ int main() {
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext1);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext9);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);		
+
+				delete_gate_bootstrapping_cloud_keyset(bk);
+				delete_gate_bootstrapping_secret_keyset(nbitkey);
 			}
 			
 			//64 Bit Subtraction
@@ -1392,6 +1408,9 @@ int main() {
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext9);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext10);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
+
+				delete_gate_bootstrapping_cloud_keyset(bk);
+				delete_gate_bootstrapping_secret_keyset(nbitkey);
 			}
 			
 			//128 Bit Subtraction
@@ -1558,6 +1577,9 @@ int main() {
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext11);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext12);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
+
+				delete_gate_bootstrapping_cloud_keyset(bk);
+				delete_gate_bootstrapping_secret_keyset(nbitkey);
 					
 			}
 			
@@ -1777,6 +1799,9 @@ int main() {
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext15);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext16);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
+
+				delete_gate_bootstrapping_cloud_keyset(bk);
+				delete_gate_bootstrapping_secret_keyset(nbitkey);
 			}
     		
     	}
@@ -1859,6 +1884,9 @@ int main() {
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext1);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext9);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
+
+				delete_gate_bootstrapping_cloud_keyset(bk);
+				delete_gate_bootstrapping_secret_keyset(nbitkey);
 						
 				}
 			else if (int_bit == 64){
@@ -1961,6 +1989,10 @@ int main() {
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext9);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertext10);
 				delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
+
+				delete_gate_bootstrapping_cloud_keyset(bk);
+				delete_gate_bootstrapping_secret_keyset(nbitkey);
+
 				}
 			else if (int_bit == 128){
 
@@ -2108,6 +2140,9 @@ int main() {
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext7);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext8);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
+
+			delete_gate_bootstrapping_cloud_keyset(bk);
+			delete_gate_bootstrapping_secret_keyset(nbitkey);
 				
 				
 			}
@@ -2321,6 +2356,9 @@ int main() {
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext15);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertext16);
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
+
+			delete_gate_bootstrapping_cloud_keyset(bk);
+			delete_gate_bootstrapping_secret_keyset(nbitkey);
 				
 			}
 		}
@@ -2524,6 +2562,7 @@ int main() {
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
 	
 			delete_gate_bootstrapping_cloud_keyset(bk);
+			delete_gate_bootstrapping_secret_keyset(nbitkey);
     		
     	}
 		else if (int_bit == 64){
@@ -2610,6 +2649,7 @@ int main() {
 			delete_gate_bootstrapping_ciphertext_array(32, finalresult3);
 	
 			delete_gate_bootstrapping_cloud_keyset(bk);
+			delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	}
 		else if (int_bit == 32){
@@ -2673,6 +2713,7 @@ int main() {
 			delete_gate_bootstrapping_ciphertext_array(32, ciphertextcarry1);
 
 			delete_gate_bootstrapping_cloud_keyset(bk);
+			delete_gate_bootstrapping_secret_keyset(nbitkey);
     	
     	}
     }
