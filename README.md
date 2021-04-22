@@ -86,7 +86,13 @@ $ systemctl enable MP MP2
 $ systemctl start MP MP2
 ```
 
-7. Run output_dynamic.py on Output machine
+7. Run ./process on all Client machines to generate values.txt
+```
+Output$ cd /IE-ACHE/Client{1..3}
+Output$ ./process
+```
+
+8. Run output_dynamic.py on Output machine
 ```
 Output$ cd /IE-ACHE/Output
 Output$ python3 output_dynamic.py
