@@ -226,10 +226,10 @@ int main(int argc, char const *argv[])
         fp2add(A24plus, A24plus, A24plus);                    
         j_inv(A24plus, C24, jinv);
         fp2_encode(jinv, SharedSecretA);    // Format shared secret
-
+        
         return 0;
     }
-    
     printf("Alice's Shared Key: %s\n", SharedSecretA );
-
+    close(server_fd);
+    return 0;
 }
