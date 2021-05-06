@@ -953,7 +953,9 @@ def handshake():
         keyimag3 = PKB[2].im
         encoded = asn1_file.encode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
 
-        print('data send', PKB[0], PKB[1], PKB[2])
+        print('')
+        print('')
+        print('Data Sent', PKB[0], PKB[1], PKB[2])
 
 	#Send BER encoded scalar / element ap to peer
         sock.sendall(encoded)
@@ -964,14 +966,20 @@ def handshake():
         #received BER encoded scalar / element and decoded
         PKA_encoded = sock.recv(2048)
         print(PKA_encoded)
-        PKA_decoded = asn1_file.decode('DataPublicKey', PKA_encoded)
+        if PKA_encoded != "":
+            print('It exists')
+            print(PKA_encoded)
+            PKA_decoded = asn1_file.decode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
+        else:
+            print('It no exist')
+        PKA_decoded = asn1_file.decode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
         #retrieving Bob's public key in INT Form
-        keyreal1A = PKB_decoded.get('keyreal1')
-        keyimag1A = PKB_decoded.get('keyimag1')
-        keyreal2A = PKB_decoded.get('keyreal2')
-        keyimag2A = PKB_decoded.get('keyimag2')
-        keyreal3A = PKB_decoded.get('keyreal3')
-        keyimag3A = PKB_decoded.get('keyimag3')
+        keyreal1A = PKA_decoded.get('keyreal1')
+        keyimag1A = PKA_decoded.get('keyimag1')
+        keyreal2A = PKA_decoded.get('keyreal2')
+        keyimag2A = PKA_decoded.get('keyimag2')
+        keyreal3A = PKA_decoded.get('keyreal3')
+        keyimag3A = PKA_decoded.get('keyimag3')
         #Forming Alice's public key into complex form for calculations
         phiPX = complex(keyreal1A, keyimag1A)
         phiQX = complex(keyreal2A, keyimag2A)
@@ -990,7 +998,7 @@ def handshake():
         logger.info('Computing shared secret...\n')
 
 	#received BER encoded scalar / element and decoded
-        PKA_encoded= sock.recv(1024)
+        PKA_encoded= sock.recv(2048)
         PKA_decoded = asn1_file.decode('DataPublicKey', PKA_encoded)
         PKA = PKA_decoded.get('data')
 
