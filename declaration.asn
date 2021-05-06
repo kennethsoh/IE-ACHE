@@ -29,7 +29,7 @@ TEST DEFINITIONS ::= BEGIN
         keyimag3    INTEGER
     }
 
-    DataStaAp ::= SEQUENCE {
+    DataSharedKey ::= SEQUENCE {
         data    IA5String
     }
 
