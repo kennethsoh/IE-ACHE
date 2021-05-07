@@ -1020,7 +1020,8 @@ def handshake():
         SKAImag = SKA_decoded.get('sharedKeyImag')
         
         SKA = Complex(SKAReal, SKAImag)
-        print('received SKA Shared Key', SKA)
+        print('received SKA Shared Key')
+        print(SKA)
 
         # PMK_Key = ap.confirm_exchange(PKBShared)
 
