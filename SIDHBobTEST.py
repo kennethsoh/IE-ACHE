@@ -965,25 +965,24 @@ def handshake():
 
         #received BER encoded scalar / element and decoded
         PKA_encoded = sock.recv(2048)
-        print(PKA_encoded)
-        if PKA_encoded != "":
-            print('It exists')
-            print(PKA_encoded)
+        check = len(PKA_encoded)
+        if check > 0:
+            
             PKA_decoded = asn1_file.decode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
-        else:
-            print('It no exist')
-        PKA_decoded = asn1_file.decode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
-        #retrieving Bob's public key in INT Form
-        keyreal1A = PKA_decoded.get('keyreal1')
-        keyimag1A = PKA_decoded.get('keyimag1')
-        keyreal2A = PKA_decoded.get('keyreal2')
-        keyimag2A = PKA_decoded.get('keyimag2')
-        keyreal3A = PKA_decoded.get('keyreal3')
-        keyimag3A = PKA_decoded.get('keyimag3')
+            #retrieving Bob's public key in INT Form
+            keyreal1A = PKA_decoded.get('keyreal1')
+            keyimag1A = PKA_decoded.get('keyimag1')
+            keyreal2A = PKA_decoded.get('keyreal2')
+            keyimag2A = PKA_decoded.get('keyimag2')
+            keyreal3A = PKA_decoded.get('keyreal3')
+            keyimag3A = PKA_decoded.get('keyimag3')
+	else:
+		print('PKA not received')
+	
         #Forming Alice's public key into complex form for calculations
-        phiPX = complex(keyreal1A, keyimag1A)
-        phiQX = complex(keyreal2A, keyimag2A)
-        phiDX = complex(keyreal3A, keyimag3A)
+        phiPX = Complex(keyreal1A, keyimag1A)
+        phiQX = Complex(keyreal2A, keyimag2A)
+        phiDX = Complex(keyreal3A, keyimag3A)
 
         PKA = [phiPX, phiQX, phiDX]
 
