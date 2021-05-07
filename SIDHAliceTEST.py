@@ -1039,10 +1039,12 @@ class ClientThread(threading.Thread):
             #Received BER encoded STA token and decode it
             SKB_encoded = self.connection.recv(1024)
             SKB_decoded = asn1_file.decode('DataSharedKey', SKB_encoded)
-            sharedKeyReal = SKB_decoded.get('SharedKeyReal')
-            sharedKeyImag = SKB_decoded.get('SharedKeyImag')
-
-            print('received SKB Shared Key', SKB)
+            SKBReal = SKB_decoded.get('SharedKeyReal')
+            SKBImag = SKB_decoded.get('SharedKeyImag')
+            
+            SKB = Complex(SKBReal, SKBImag)
+            print('received SKB Shared Key:')
+            print(SKB)
 
             # PMK_Key = ap.confirm_exchange(PKBShared)
 
