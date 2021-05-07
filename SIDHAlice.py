@@ -1047,7 +1047,7 @@ def handshake():
     HOSTUP3 = True if os.system("ping -c 2 192.168.0.23 > /dev/null 2>&1") == 0 else False
 
     hostup = int(sum([HOSTUP1, HOSTUP2, HOSTUP3]) + 1)
-    position = 1
+    position = 0
 
     #dragon_time_start = time.perf_counter()
 
