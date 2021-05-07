@@ -31,7 +31,7 @@ TEST DEFINITIONS ::= BEGIN
 
     DataSharedKey ::= SEQUENCE {
         sharedKeyReal    INTEGER,
-        sharedKeyImag INTEGER
+        sharedKeyImag    INTEGER
     }
 
     DataFsize ::= SEQUENCE {
