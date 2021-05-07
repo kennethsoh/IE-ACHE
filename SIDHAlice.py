@@ -977,9 +977,9 @@ class ClientThread(threading.Thread):
             keyreal3B = PKB_decoded.get('keyreal3')
             keyimag3B = PKB_decoded.get('keyimag3')
 	    #Forming Bob's public key into complex form for calculations
-            phiPX = complex(keyreal1B, keyimag1B)
-            phiQX = complex(keyreal2B, keyimag2B)
-            phiDX = complex(keyreal3B, keyimag3B)
+            phiPX = Complex(keyreal1B, keyimag1B)
+            phiQX = Complex(keyreal2B, keyimag2B)
+            phiDX = Complex(keyreal3B, keyimag3B)
 	    
             PKB = [phiPX, phiQX, phiDX]
 
