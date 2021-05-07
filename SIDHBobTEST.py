@@ -957,7 +957,7 @@ def handshake():
         print('')
         print('Data Sent', PKB[0], PKB[1], PKB[2])
 
-    #Send BER encoded scalar / element ap to peer
+        #Send BER encoded scalar / element ap to peer
         sock.sendall(encoded)
         print()
 
@@ -976,8 +976,9 @@ def handshake():
             keyimag2A = PKA_decoded.get('keyimag2')
             keyreal3A = PKA_decoded.get('keyreal3')
             keyimag3A = PKA_decoded.get('keyimag3')
-    else:
-        print('PKA not received')
+        else:
+            print('PKA not received')
+            
     
         #Forming Alice's public key into complex form for calculations
         phiPX = Complex(keyreal1A, keyimag1A)
