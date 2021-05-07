@@ -906,12 +906,12 @@ MAX_Bob = 239
 
 def handshake():
         #Own mac address
-        own_mac = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
+        #own_mac = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
 
         #Encode MAC address with BER
-        own_mac_BER = asn1_file.encode('DataMac', {'data': own_mac})
+        #own_mac_BER = asn1_file.encode('DataMac', {'data': own_mac})
 
-        print (own_mac)
+        #print (own_mac)
         # ap = Peer('abc1238', own_mac, 'AP')
 
         logger.info('Starting hunting and pecking to derive PE...\n')
@@ -965,19 +965,16 @@ def handshake():
 
         #received BER encoded scalar / element and decoded
         PKA_encoded = sock.recv(2048)
-        check = len(PKA_encoded)
-        if check > 0:
             
-            PKA_decoded = asn1_file.decode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
-            #retrieving Bob's public key in INT Form
-            keyreal1A = PKA_decoded.get('keyreal1')
-            keyimag1A = PKA_decoded.get('keyimag1')
-            keyreal2A = PKA_decoded.get('keyreal2')
-            keyimag2A = PKA_decoded.get('keyimag2')
-            keyreal3A = PKA_decoded.get('keyreal3')
-            keyimag3A = PKA_decoded.get('keyimag3')
-        else:
-            print('PKA not received')
+        PKA_decoded = asn1_file.decode('DataPublicKey', PKA_encoded)
+        #retrieving Bob's public key in INT Form
+        keyreal1A = PKA_decoded.get('keyreal1')
+        keyimag1A = PKA_decoded.get('keyimag1')
+        keyreal2A = PKA_decoded.get('keyreal2')
+        keyimag2A = PKA_decoded.get('keyimag2')
+        keyreal3A = PKA_decoded.get('keyreal3')
+        keyimag3A = PKA_decoded.get('keyimag3')
+     
             
     
         #Forming Alice's public key into complex form for calculations
