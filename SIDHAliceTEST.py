@@ -79,7 +79,7 @@ class Complex(object):
 	def __init__(self, real, imag=0):
 		self.re = int(real)
 		self.im = int(imag)
-        
+		
 	def __add__(self, other):
 		return Complex(self.re + other.re, self.im + other.im)
 
@@ -232,32 +232,32 @@ def edDBLe(XP,ZP,A,C,e):
 #simultaneous doubling and differential addition
 def xDBLADD(XP,ZP,XQ,ZQ,xPQ,A24):
 	#input: projective coordinates xP=XP/ZP and xQ=XQ/ZQ, 
-    #       affine difference x(P-Q)=xPQ and 
-    #       curve constant A24=(A+2)/4.	
-    #output: projective coordinates of x(2P)=X2P/Z2P
-    #        and x(Q+P)=XQP/ZQP
-    t0 = XP + ZP                  #code from msr
-    t1 = XP - ZP 
-    X2P = t0**2
-    t2 = XQ - ZQ
-    XQP = XQ + ZQ
-    t0 = t0 * t2
-    Z2P = t1**2
-    t1 = t1 * XQP
-    t2 = X2P - Z2P
-    X2P = X2P * Z2P
-    XQP = A24 * t2
-    ZQP = t0 - t1
-    Z2P = XQP + Z2P
-    XQP = t0 + t1
-    Z2P = Z2P * t2
-    ZQP = ZQP**2
-    XQP = XQP**2
-    ZQP = xPQ * ZQP
-    
-    return X2P, Z2P, XQP, ZQP    #cost: 6M+4S+8a	
-    
-    
+	#       affine difference x(P-Q)=xPQ and 
+	#       curve constant A24=(A+2)/4.	
+	#output: projective coordinates of x(2P)=X2P/Z2P
+	#        and x(Q+P)=XQP/ZQP
+	t0 = XP + ZP                  #code from msr
+	t1 = XP - ZP 
+	X2P = t0**2
+	t2 = XQ - ZQ
+	XQP = XQ + ZQ
+	t0 = t0 * t2
+	Z2P = t1**2
+	t1 = t1 * XQP
+	t2 = X2P - Z2P
+	X2P = X2P * Z2P
+	XQP = A24 * t2
+	ZQP = t0 - t1
+	Z2P = XQP + Z2P
+	XQP = t0 + t1
+	Z2P = Z2P * t2
+	ZQP = ZQP**2
+	XQP = XQP**2
+	ZQP = xPQ * ZQP
+	
+	return X2P, Z2P, XQP, ZQP    #cost: 6M+4S+8a	
+	
+	
 ################################################################
 
 
@@ -284,11 +284,11 @@ def xDBLe(XP,ZP,A,C,e):
 #edwards-montgomery step in basefield
 def xDBLADD_basefield(XP,ZP,XQ,ZQ,xPQ,A24,C24):
 	#input: projective coordinates xP=XP/ZP and xQ=XQ/ZQ, 
-    #       affine difference x(P-Q)=xPQ and 
-    #       curve constant A24=(A+2)/4.	
-    #output: projective coordinates of x(2P)=X2P/Z2P
-    #        and x(Q+P)=XQP/ZQP
-    # function assumes A24=1, C24=2 fixed
+	#       affine difference x(P-Q)=xPQ and 
+	#       curve constant A24=(A+2)/4.	
+	#output: projective coordinates of x(2P)=X2P/Z2P
+	#        and x(Q+P)=XQP/ZQP
+	# function assumes A24=1, C24=2 fixed
 	
 	t0 = XP + ZP   #Montgomery-addition
 	t1 = XP - ZP
@@ -403,7 +403,7 @@ def LADDER(x, m, A24, C24, AliceorBob):
 			X1, Z1, X0, Z0 = xDBLADD_basefield(X1, Z1, X0, Z0, x, A24, C24)	
 			
 	return X0, Z0, X1, Z1		#cost:5nM+4nS+9na	
-						 	
+							
 	
 #########################################################################
 
@@ -912,198 +912,198 @@ MAX_Alice = 185
 #######################################################################
 
 class ClientThread(threading.Thread):
-    def __init__(self,connection,clientAddr):
-        threading.Thread.__init__(self)
-        self.clientAddr = clientAddr
-        self.connection = connection
-        print("Connection coming from", connection)
+	def __init__(self,connection,clientAddr):
+		threading.Thread.__init__(self)
+		self.clientAddr = clientAddr
+		self.connection = connection
+		print("Connection coming from", connection)
 
-    def run(self):
-        #Own mac address
-        own_mac = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
+	def run(self):
+		#Own mac address
+		own_mac = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
 
-        #Encode MAC address with BER
-        own_mac_BER = asn1_file.encode('DataMac', {'data': own_mac})
+		#Encode MAC address with BER
+		own_mac_BER = asn1_file.encode('DataMac', {'data': own_mac})
 
-        print (own_mac)
-        # ap = Peer('abc1238', own_mac, 'AP')
+		print (own_mac)
+		# ap = Peer('abc1238', own_mac, 'AP')
 
-        logger.info('Starting hunting and pecking to derive PE...\n')
-        # print ("Connecting from", client_address)
+		logger.info('Starting hunting and pecking to derive PE...\n')
+		# print ("Connecting from", client_address)
 
-        with self.connection:
-            # raw_other_mac = self.connection.recv(1024)
+		with self.connection:
+			# raw_other_mac = self.connection.recv(1024)
 
-            # #decode BER and get MAC address
-            # other_decode_mac = asn1_file.decode('DataMac', raw_other_mac)
-            # other_mac = other_decode_mac.get('data')
+			# #decode BER and get MAC address
+			# other_decode_mac = asn1_file.decode('DataMac', raw_other_mac)
+			# other_mac = other_decode_mac.get('data')
 
-            # print ("Other MAC", other_mac)
+			# print ("Other MAC", other_mac)
 
-            # #Sending BER encoded MAC address to peer
-            # self.connection.send(own_mac_BER)
+			# #Sending BER encoded MAC address to peer
+			# self.connection.send(own_mac_BER)
 
-            print()
-            logger.info('Starting commit exchange...\n')
+			print()
+			logger.info('Starting commit exchange...\n')
 
-            # scalar_ap, element_ap = ap.commit_exchange()
+			# scalar_ap, element_ap = ap.commit_exchange()
 
-            # #encode scalar_ap / element_ap
-            # scalar_complete = ("\n".join([str(scalar_ap), str(element_ap)]))
-            n_Alice = randint(0,(lA**eA)/2)
-            n_Alice = 2*n_Alice
-            print("Alice's secret key:")
-            print(n_Alice)
-            print('')
-            PKA = keygen_Alice(n_Alice, params_Alice, splits_Alice, MAX_Alice)
-            print('')
-            print("Alice's Public Key:")
-            print((PKA[0]))
-            print((PKA[1]))
-            print((PKA[2]))
-            print('')
+			# #encode scalar_ap / element_ap
+			# scalar_complete = ("\n".join([str(scalar_ap), str(element_ap)]))
+			n_Alice = randint(0,(lA**eA)/2)
+			n_Alice = 2*n_Alice
+			print("Alice's secret key:")
+			print(n_Alice)
+			print('')
+			PKA = keygen_Alice(n_Alice, params_Alice, splits_Alice, MAX_Alice)
+			print('')
+			print("Alice's Public Key:")
+			print((PKA[0]))
+			print((PKA[1]))
+			print((PKA[2]))
+			print('')
 
-            keyreal1 = PKA[0].re
-            keyimag1 = PKA[0].im
-            keyreal2 = PKA[1].re
-            keyimag2 = PKA[1].im
-            keyreal3 = PKA[2].re
-            keyimag3 = PKA[2].im
-            encoded = asn1_file.encode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
+			keyreal1 = PKA[0].re
+			keyimag1 = PKA[0].im
+			keyreal2 = PKA[1].re
+			keyimag2 = PKA[1].im
+			keyreal3 = PKA[2].re
+			keyimag3 = PKA[2].im
+			encoded = asn1_file.encode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
 
-            print('data send', PKA[0], PKA[1], PKA[2])
+			print('data send', PKA[0], PKA[1], PKA[2])
 
-            #Send BER encoded scalar / element ap to peer
-            self.connection.sendall(encoded)
-            print()
+			#Send BER encoded scalar / element ap to peer
+			self.connection.sendall(encoded)
+			print()
 
-            logger.info('Computing shared secret...\n')
+			logger.info('Computing shared secret...\n')
 
-            #received BER encoded scalar / element and decoded
-            PKB_encoded = self.connection.recv(1024, socket.MSG_WAITALL)
-            PKB_decoded = asn1_file.decode('DataPublicKey', PKB_encoded)
-	    #retrieving Bob's public key in INT Form
-            keyreal1B = PKB_decoded.get('keyreal1')
-            keyimag1B = PKB_decoded.get('keyimag1')
-            keyreal2B = PKB_decoded.get('keyreal2')
-            keyimag2B = PKB_decoded.get('keyimag2')
-            keyreal3B = PKB_decoded.get('keyreal3')
-            keyimag3B = PKB_decoded.get('keyimag3')
-	    #Forming Bob's public key into complex form for calculations
-            phiPX = Complex(keyreal1B, keyimag1B)
-            phiQX = Complex(keyreal2B, keyimag2B)
-            phiDX = Complex(keyreal3B, keyimag3B)
-	    
-            PKB = [phiPX, phiQX, phiDX]
-
-            print('Public Key Received: ')
-            print(PKB[0])
-            print(PKB[1])
-            print(PKB[2])
-
-            # data = scalar_element_ap.split('\n')
-            # print (data[0])
-            # print (data[1])
-            # scalar_sta = data[0]
-            # element_sta = data[1]
-            # print()
-            # print ('scalar_sta recv:',scalar_sta)
-            # print()
-            # print ('element_sta recv:',element_sta)
-            # print ()
-            # print ()
-            # namedtuple_element_sta = eval(element_sta)
-            # print(namedtuple_element_sta.y, namedtuple_element_sta.x)
-            # print ()
-            # print ()
-            # ap_token = ap.compute_shared_secret(namedtuple_element_sta, int(scalar_sta), other_mac)
-
-            SKA = shared_secret_Alice(n_Alice, PKB, splits_Alice, MAX_Alice)
-            print('')
-            print("Alice's shared secret:")
-            print(SKA)
-            print('')
+			#received BER encoded scalar / element and decoded
+			PKB_encoded = self.connection.recv(1024, socket.MSG_WAITALL)
+			PKB_decoded = asn1_file.decode('DataPublicKey', PKB_encoded)
+		#retrieving Bob's public key in INT Form
+			keyreal1B = PKB_decoded.get('keyreal1')
+			keyimag1B = PKB_decoded.get('keyimag1')
+			keyreal2B = PKB_decoded.get('keyreal2')
+			keyimag2B = PKB_decoded.get('keyimag2')
+			keyreal3B = PKB_decoded.get('keyreal3')
+			keyimag3B = PKB_decoded.get('keyimag3')
+		#Forming Bob's public key into complex form for calculations
+			phiPX = Complex(keyreal1B, keyimag1B)
+			phiQX = Complex(keyreal2B, keyimag2B)
+			phiDX = Complex(keyreal3B, keyimag3B)
 		
-            #Encode ap_token to be BER and send to peer
-	    sharedKeyRealA = SKA.re
-	    sharedKeyImagA = SKA.im
-            SKA_encoded = asn1_file.encode('DataSharedKey',{'sharedKeyReal': sharedKeyRealA, 'sharedKeyImag': sharedKeyImagA})
-            self.connection.send(SKA_encoded)
+			PKB = [phiPX, phiQX, phiDX]
 
-            # connection.send(ap_token.encode())
-            print("Shared Key being sent across", SKA)
+			print('Public Key Received: ')
+			print(PKB[0])
+			print(PKB[1])
+			print(PKB[2])
 
-            print()
-            logger.info('Confirming Exchange...\n')
+			# data = scalar_element_ap.split('\n')
+			# print (data[0])
+			# print (data[1])
+			# scalar_sta = data[0]
+			# element_sta = data[1]
+			# print()
+			# print ('scalar_sta recv:',scalar_sta)
+			# print()
+			# print ('element_sta recv:',element_sta)
+			# print ()
+			# print ()
+			# namedtuple_element_sta = eval(element_sta)
+			# print(namedtuple_element_sta.y, namedtuple_element_sta.x)
+			# print ()
+			# print ()
+			# ap_token = ap.compute_shared_secret(namedtuple_element_sta, int(scalar_sta), other_mac)
 
-            #Received BER encoded STA token and decode it
-            SKB_encoded = self.connection.recv(1024)
-            SKB_decoded = asn1_file.decode('DataSharedKey', SKB_encoded)
-            sharedKeyReal = SKB_decoded.get('SharedKeyReal')
-	    sharedKeyImag = SKB_decoded.get('SharedKeyImag')
+			SKA = shared_secret_Alice(n_Alice, PKB, splits_Alice, MAX_Alice)
+			print('')
+			print("Alice's shared secret:")
+			print(SKA)
+			print('')
+		
+			#Encode ap_token to be BER and send to peer
+		sharedKeyRealA = SKA.re
+		sharedKeyImagA = SKA.im
+			SKA_encoded = asn1_file.encode('DataSharedKey',{'sharedKeyReal': sharedKeyRealA, 'sharedKeyImag': sharedKeyImagA})
+			self.connection.send(SKA_encoded)
 
-            print('received SKB Shared Key', SKB)
+			# connection.send(ap_token.encode())
+			print("Shared Key being sent across", SKA)
 
-            # PMK_Key = ap.confirm_exchange(PKBShared)
+			print()
+			logger.info('Confirming Exchange...\n')
 
-            if SKA==SKB:
-                print('keys are equal :)')
-            else:
-                print('something went wrong :(')
-                if n_Alice % 2 != 0:
-                    print("Error: Bob's secret key must be even!")
+			#Received BER encoded STA token and decode it
+			SKB_encoded = self.connection.recv(1024)
+			SKB_decoded = asn1_file.decode('DataSharedKey', SKB_encoded)
+			sharedKeyReal = SKB_decoded.get('SharedKeyReal')
+		sharedKeyImag = SKB_decoded.get('SharedKeyImag')
+
+			print('received SKB Shared Key', SKB)
+
+			# PMK_Key = ap.confirm_exchange(PKBShared)
+
+			if SKA==SKB:
+				print('keys are equal :)')
+			else:
+				print('something went wrong :(')
+				if n_Alice % 2 != 0:
+					print("Error: Bob's secret key must be even!")
 
 			# lock.release()
 
 #######################################################################
 
 def handshake():
-    HOSTUP1 = True if os.system("ping -c 2 192.168.0.21 > /dev/null 2>&1") == 0 else False
-    HOSTUP2 = True if os.system("ping -c 2 192.168.0.22 > /dev/null 2>&1") == 0 else False
-    HOSTUP3 = True if os.system("ping -c 2 192.168.0.23 > /dev/null 2>&1") == 0 else False
+	HOSTUP1 = True if os.system("ping -c 2 192.168.0.21 > /dev/null 2>&1") == 0 else False
+	HOSTUP2 = True if os.system("ping -c 2 192.168.0.22 > /dev/null 2>&1") == 0 else False
+	HOSTUP3 = True if os.system("ping -c 2 192.168.0.23 > /dev/null 2>&1") == 0 else False
 
-    #hostup = int(sum([HOSTUP1, HOSTUP2, HOSTUP3]) + 1)
-    hostup = int(1)
-    position = 0
+	#hostup = int(sum([HOSTUP1, HOSTUP2, HOSTUP3]) + 1)
+	hostup = int(1)
+	position = 0
 
-    #dragon_time_start = time.perf_counter()
+	#dragon_time_start = time.perf_counter()
 
-    # Generate keys once only  
-    # subprocess.call("./keygen")
-    
-    #alice_done = time.perf_counter()
-    #f = open('timings.txt' ,'a')
-    #alice = round((alice_done - dragon_time_start), 3)
-    #f.write('alice:')
-    #f.write(str(alice))
-    #f.close()
+	# Generate keys once only  
+	# subprocess.call("./keygen")
+	
+	#alice_done = time.perf_counter()
+	#f = open('timings.txt' ,'a')
+	#alice = round((alice_done - dragon_time_start), 3)
+	#f.write('alice:')
+	#f.write(str(alice))
+	#f.close()
 
-    while True:
-        sock.listen()
-        connection, client_address = sock.accept()
-        threading_name = str(hostup)
-        if (client_address[0]) == "192.168.0.4" and position == 1:
-            newThread = ClientThread(connection, client_address)
-            newThread.start()
-            hostup -= 1
-            position = 0
-        elif hostup != 0 and position == 0 and (client_address[0]) != "192.168.0.1":
-            newThread = ClientThread(connection, client_address)
-            newThread.start()
-            hostup -=1
-        elif hostup == 0:
-            position = 1
-            #f = open('timings.txt', 'a')
-            #dragon_time_stop = time.perf_counter()
-            #dragon_time_total = round((dragon_time_stop - dragon_time_start), 3)
-            #f.write('\ndragon_time + alice:')
-            #f.write(str(dragon_time_total))
-            #f.close()
-            break
-        else:
-            connection.close()
-            sock.close()
-            continue
+	while True:
+		sock.listen()
+		connection, client_address = sock.accept()
+		threading_name = str(hostup)
+		if (client_address[0]) == "192.168.0.4" and position == 1:
+			newThread = ClientThread(connection, client_address)
+			newThread.start()
+			hostup -= 1
+			position = 0
+		elif hostup != 0 and position == 0 and (client_address[0]) != "192.168.0.1":
+			newThread = ClientThread(connection, client_address)
+			newThread.start()
+			hostup -=1
+		elif hostup == 0:
+			position = 1
+			#f = open('timings.txt', 'a')
+			#dragon_time_stop = time.perf_counter()
+			#dragon_time_total = round((dragon_time_stop - dragon_time_start), 3)
+			#f.write('\ndragon_time + alice:')
+			#f.write(str(dragon_time_total))
+			#f.close()
+			break
+		else:
+			connection.close()
+			sock.close()
+			continue
 
 #######################################################################
 
