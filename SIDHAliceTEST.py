@@ -980,7 +980,7 @@ class ClientThread(threading.Thread):
             logger.info('Computing shared secret...\n')
 
             #received BER encoded scalar / element and decoded
-            PKB_encoded = self.connection.recv(1024, socket.MSG_WAITALL)
+            PKB_encoded = self.connection.recv(2048, socket.MSG_WAITALL)
             PKB_decoded = asn1_file.decode('DataPublicKey', PKB_encoded)
         #retrieving Bob's public key in INT Form
             keyreal1B = PKB_decoded.get('keyreal1')
@@ -1037,7 +1037,7 @@ class ClientThread(threading.Thread):
             logger.info('Confirming Exchange...\n')
 
             #Received BER encoded STA token and decode it
-            SKB_encoded = self.connection.recv(1024)
+            SKB_encoded = self.connection.recv(2048)
             SKB_decoded = asn1_file.decode('DataSharedKey', SKB_encoded)
             SKBReal = SKB_decoded.get('SharedKeyReal')
             SKBImag = SKB_decoded.get('SharedKeyImag')
