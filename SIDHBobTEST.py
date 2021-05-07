@@ -1006,7 +1006,7 @@ def handshake():
         sharedKeyRealB = SKB.re
         sharedKeyImagB = SKB.im
         SKB_encoded = asn1_file.encode('DataSharedKey',{'sharedKeyReal': sharedKeyRealB, 'sharedKeyImag': sharedKeyImagB})
-        sock.send(SKB_encoded)
+        sock.sendall(SKB_encoded)
         
         # connection.send(ap_token.encode())
         print("Shared Key being sent across", SKB)
