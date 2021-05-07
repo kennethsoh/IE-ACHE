@@ -1017,7 +1017,9 @@ class ClientThread(threading.Thread):
             # print ()
             # print ()
             # ap_token = ap.compute_shared_secret(namedtuple_element_sta, int(scalar_sta), other_mac)
-
+            print()
+            logger.info('Computing shared secret...\n')
+            
             SKA = shared_secret_Alice(n_Alice, PKB, splits_Alice, MAX_Alice)
             print('')
             print("Alice's shared secret:")
@@ -1037,7 +1039,7 @@ class ClientThread(threading.Thread):
             logger.info('Confirming Exchange...\n')
 
             #Received BER encoded STA token and decode it
-            SKB_encoded = self.connection.recv(2048)
+            SKB_encoded = self.connection.recv(1024)
             SKB_decoded = asn1_file.decode('DataSharedKey', SKB_encoded)
             SKBReal = SKB_decoded.get('SharedKeyReal')
             SKBImag = SKB_decoded.get('SharedKeyImag')
