@@ -1025,8 +1025,8 @@ class ClientThread(threading.Thread):
             print('')
         
             #Encode ap_token to be BER and send to peer
-        sharedKeyRealA = SKA.re
-        sharedKeyImagA = SKA.im
+            sharedKeyRealA = SKA.re
+            sharedKeyImagA = SKA.im
             SKA_encoded = asn1_file.encode('DataSharedKey',{'sharedKeyReal': sharedKeyRealA, 'sharedKeyImag': sharedKeyImagA})
             self.connection.send(SKA_encoded)
 
@@ -1040,7 +1040,7 @@ class ClientThread(threading.Thread):
             SKB_encoded = self.connection.recv(1024)
             SKB_decoded = asn1_file.decode('DataSharedKey', SKB_encoded)
             sharedKeyReal = SKB_decoded.get('SharedKeyReal')
-        sharedKeyImag = SKB_decoded.get('SharedKeyImag')
+            sharedKeyImag = SKB_decoded.get('SharedKeyImag')
 
             print('received SKB Shared Key', SKB)
 
