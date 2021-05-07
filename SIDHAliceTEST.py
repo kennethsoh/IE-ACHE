@@ -1025,7 +1025,9 @@ class ClientThread(threading.Thread):
             print('')
 		
             #Encode ap_token to be BER and send to peer
-            SKA_encoded = asn1_file.encode('DataSharedKey',{'data':SKA})
+	    sharedKeyReal = SKA.re
+	    sharedKeyImag = SKA.im
+            SKA_encoded = asn1_file.encode('DataSharedKey',{'SharedkeyReal': SharedkeyReal, 'SharedkeyImag': SharedkeyImag})
             self.connection.send(SKA_encoded)
 
             # connection.send(ap_token.encode())
