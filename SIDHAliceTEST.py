@@ -980,7 +980,7 @@ class ClientThread(threading.Thread):
             logger.info('Computing shared secret...\n')
 
             #received BER encoded scalar / element and decoded
-            PKB_encoded = self.connection.recv(2048, socket.MSG_WAITALL)
+            PKB_encoded = self.connection.recv(1024, socket.MSG_WAITALL)
             PKB_decoded = asn1_file.decode('DataPublicKey', PKB_encoded)
 	    #retrieving Bob's public key in INT Form
             keyreal1B = PKB_decoded.get('keyreal1')
@@ -1025,9 +1025,9 @@ class ClientThread(threading.Thread):
             print('')
 		
             #Encode ap_token to be BER and send to peer
-	    sharedKeyReal = SKA.re
-	    sharedKeyImag = SKA.im
-            SKA_encoded = asn1_file.encode('DataSharedKey',{'SharedkeyReal': SharedkeyReal, 'SharedkeyImag': SharedkeyImag})
+	    sharedKeyRealA = SKA.re
+	    sharedKeyImagA = SKA.im
+            SKA_encoded = asn1_file.encode('DataSharedKey',{'sharedKeyReal': sharedKeyRealA, 'sharedKeyImag': sharedKeyImagA})
             self.connection.send(SKA_encoded)
 
             # connection.send(ap_token.encode())
@@ -1039,7 +1039,8 @@ class ClientThread(threading.Thread):
             #Received BER encoded STA token and decode it
             SKB_encoded = self.connection.recv(1024)
             SKB_decoded = asn1_file.decode('DataSharedKey', SKB_encoded)
-            SKB = PKBShared_decoded.get('data')
+            sharedKeyReal = SKB_decoded.get('SharedKeyReal')
+	    sharedKeyImag = SKB_decoded.get('SharedKeyImag')
 
             print('received SKB Shared Key', SKB)
 
