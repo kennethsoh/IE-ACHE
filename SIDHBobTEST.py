@@ -995,11 +995,6 @@ def handshake():
         logger.info('Computing shared secret...\n')
 
     #received BER encoded scalar / element and decoded
-        PKA_encoded= sock.recv(2048)
-        PKA_decoded = asn1_file.decode('DataPublicKey', PKA_encoded)
-        PKA = PKA_decoded.get('data')
-
-        print('Public Key Received', PKA)
 
         SKB = shared_secret_Bob(n_Bob, PKA, splits_Bob, MAX_Bob)
         print('')
@@ -1008,7 +1003,9 @@ def handshake():
         print('')
         
         #Encode ap_token to be BER and send to peer
-        SKB_encoded = asn1_file.encode('DataSharedKey',{'data':SKB})
+        sharedKeyRealB = SKB.re
+        sharedKeyImagB = SKB.im
+        SKB_encoded = asn1_file.encode('DataSharedKey',{'sharedKeyReal': sharedKeyRealB, 'sharedKeyImag': sharedKeyImagB})
         sock.send(SKB_encoded)
         
         # connection.send(ap_token.encode())
@@ -1019,8 +1016,10 @@ def handshake():
         #Received BER encoded STA token and decode it
         SKA_encoded = sock.recv(1024)
         SKA_decoded = asn1_file.decode('DataSharedKey', SKA_encoded)
-        SKA = PKBShared_decoded.get('data')
-
+        SKAReal = SKA_decoded.get('sharedKeyReal')
+        SKAImag = SKA_decoded.get('sharedKeyImag')
+        
+        SKA = Complex(SKAReal, SKAImag)
         print('received SKA Shared Key', SKA)
 
         # PMK_Key = ap.confirm_exchange(PKBShared)
