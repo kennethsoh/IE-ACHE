@@ -980,7 +980,7 @@ class ClientThread(threading.Thread):
             logger.info('Computing shared secret...\n')
 
             #received BER encoded scalar / element and decoded
-            PKB_encoded = self.connection.recv(2048, socket.MSG_WAITALL)
+            PKB_encoded = self.connection.recv(2048)
             PKB_decoded = asn1_file.decode('DataPublicKey', PKB_encoded)
         #retrieving Bob's public key in INT Form
             keyreal1B = PKB_decoded.get('keyreal1')
