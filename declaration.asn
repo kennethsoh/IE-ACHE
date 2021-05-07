@@ -30,7 +30,8 @@ TEST DEFINITIONS ::= BEGIN
     }
 
     DataSharedKey ::= SEQUENCE {
-        data    IA5String
+        Sharedkey1    INTEGER,
+        Sharedkey2    INTEGER
     }
 
     DataFsize ::= SEQUENCE {
