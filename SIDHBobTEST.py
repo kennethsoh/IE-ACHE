@@ -1050,7 +1050,7 @@ def handshake():
 #             print('something went wrong :(')
 #             if n_Alice % 2 != 0:
 #                 print("Error: Alice's secret key must be even!")
-          # Open the received secret file from the key generator
+       # Open the received secret file from the key generator
           with open('secret.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
               print ('File opened...\n')
               while True:
