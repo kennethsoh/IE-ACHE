@@ -904,6 +904,25 @@ MAX_Bob = 239
 
 #######################################################################
 
+def decrypting(key, filename):
+    chunksize = 64 * 1024
+    outputFile = filename.split('.hacklab')[0]
+
+    with open(filename, 'rb') as infile:
+        filesize = int(infile.read(16))
+        IV = infile.read(16)
+        decryptor = AES.new(key, AES.MODE_CBC, IV)
+
+        with open(outputFile, 'wb') as outfile:
+            while True:
+                chunk = infile.read(chunksize)
+                if len(chunk) == 0:
+                    break
+                outfile.write(decryptor.decrypt(chunk))
+            outfile.truncate(filesize)
+
+    return outputFile
+
 def handshake():
         #Own mac address
         #own_mac = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
@@ -1002,36 +1021,69 @@ def handshake():
         print(SKB)
         print('')
         
-        #Encode ap_token to be BER and send to peer
-        sharedKeyRealB = SKB.re
-        sharedKeyImagB = SKB.im
-        SKB_encoded = asn1_file.encode('DataSharedKey',{'sharedKeyReal': sharedKeyRealB, 'sharedKeyImag': sharedKeyImagB})
-        sock.sendall(SKB_encoded)
+#         #Encode ap_token to be BER and send to peer
+#         sharedKeyRealB = SKB.re
+#         sharedKeyImagB = SKB.im
+#         SKB_encoded = asn1_file.encode('DataSharedKey',{'sharedKeyReal': sharedKeyRealB, 'sharedKeyImag': sharedKeyImagB})
+#         sock.sendall(SKB_encoded)
         
-        # connection.send(ap_token.encode())
-        print("Shared Key being sent across", SKB)
-        print()
-        logger.info('Confirming Exchange...\n')
+#         # connection.send(ap_token.encode())
+#         print("Shared Key being sent across", SKB)
+#         print()
+#         logger.info('Confirming Exchange...\n')
 
-        #Received BER encoded STA token and decode it
-        SKA_encoded = sock.recv(1024)
-        SKA_decoded = asn1_file.decode('DataSharedKey', SKA_encoded)
-        SKAReal = SKA_decoded.get('sharedKeyReal')
-        SKAImag = SKA_decoded.get('sharedKeyImag')
+#         #Received BER encoded STA token and decode it
+#         SKA_encoded = sock.recv(1024)
+#         SKA_decoded = asn1_file.decode('DataSharedKey', SKA_encoded)
+#         SKAReal = SKA_decoded.get('sharedKeyReal')
+#         SKAImag = SKA_decoded.get('sharedKeyImag')
         
-        SKA = Complex(SKAReal, SKAImag)
-        print('received SKA Shared Key')
-        print(SKA)
+#         SKA = Complex(SKAReal, SKAImag)
+#         print('received SKA Shared Key')
+#         print(SKA)
 
-        # PMK_Key = ap.confirm_exchange(PKBShared)
+#         # PMK_Key = ap.confirm_exchange(PKBShared)
 
-        if SKB==SKA:
-            print('keys are equal :)')
-        else:
-            print('something went wrong :(')
-            if n_Alice % 2 != 0:
-                print("Error: Alice's secret key must be even!")
+#         if SKB==SKA:
+#             print('keys are equal :)')
+#         else:
+#             print('something went wrong :(')
+#             if n_Alice % 2 != 0:
+#                 print("Error: Alice's secret key must be even!")
+          # Open the received secret file from the key generator
+          with open('secret.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
+              print ('File opened...\n')
+              while True:
+                  # print ('Receiving data...\n')
+                  secret_key_BER = sock.recv(16396, socket.MSG_WAITALL)
+                  if (len(secret_key_BER) > 10):
+                      keys_decoded = asn1_file.decode('DataKey', secret_key_BER)
+                      secret_key = keys_decoded.get('key')
+                      nbit_key = keys_decoded.get('nbit')
+                  else:
+                      break
+                  if not (secret_key or nbit_key):
+                      break
+                  s.write(secret_key)
+                  t.write(nbit_key)
 
+              s.close()
+              t.close()
+
+              print ('Successfully got the files\n')
+
+          print ('Encrypted secret file size: ', os.path.getsize('secret.key.hacklab'))
+          print ('Encrypted nbit file size: ', os.path.getsize('nbit.key.hacklab'))
+
+          print ('Decrypting the files...\n')
+
+          decrypted_secret_key = decrypting(PMK_Key, 'secret.key.hacklab')
+          print('Acquired original secret key file size: ', os.path.getsize(decrypted_secret_key))
+          os.system("md5sum secret.key")
+
+          decrypted_nbit_key = decrypting(PMK_Key, 'nbit.key.hacklab')
+          print('Acquired original nbit key file size: ', os.path.getsize(decrypted_nbit_key))
+          os.system("md5sum nbit.key")
 
 #######################################################################
 
