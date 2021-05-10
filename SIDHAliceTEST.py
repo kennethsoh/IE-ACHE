@@ -911,6 +911,27 @@ MAX_Alice = 185
 
 #######################################################################
 
+def encrypting(key, filename):
+    chunksize = 64*1024
+    outputFile = filename+".hacklab"
+    filesize = str(os.path.getsize(filename)).zfill(16)
+    IV = Random.new().read(16)
+
+    encryptor = AES.new(key, AES.MODE_CBC, IV)
+    with open(filename, 'rb') as infile:
+        with open(outputFile, 'wb') as outfile:
+            outfile.write(filesize.encode('utf-8'))
+            outfile.write(IV)
+            while True:
+                chunk = infile.read(chunksize)
+                if len(chunk) == 0:
+                    break
+                elif len(chunk) % 16 != 0:
+                    chunk += b' ' * (16 - (len(chunk) % 16))
+                outfile.write(encryptor.encrypt(chunk))
+
+    return outputFile
+
 class ClientThread(threading.Thread):
     def __init__(self,connection,clientAddr):
         threading.Thread.__init__(self)
@@ -1025,39 +1046,78 @@ class ClientThread(threading.Thread):
             print("Alice's shared secret:")
             print(SKA)
             print('')
-        
-            #Encode ap_token to be BER and send to peer
-            sharedKeyRealA = SKA.re
-            sharedKeyImagA = SKA.im
-            SKA_encoded = asn1_file.encode('DataSharedKey',{'sharedKeyReal': sharedKeyRealA, 'sharedKeyImag': sharedKeyImagA})
-            self.connection.send(SKA_encoded)
+            
+#             #Encode ap_token to be BER and send to peer
+#             sharedKeyRealA = SKA.re
+#             sharedKeyImagA = SKA.im
+#             SKA_encoded = asn1_file.encode('DataSharedKey',{'sharedKeyReal': sharedKeyRealA, 'sharedKeyImag': sharedKeyImagA})
+#             self.connection.send(SKA_encoded)
 
-            # connection.send(ap_token.encode())
-            print("Shared Key being sent across", SKA)
+#             # connection.send(ap_token.encode())
+#             print("Shared Key being sent across", SKA)
 
-            print()
-            logger.info('Confirming Exchange...\n')
+#             print()
+#             logger.info('Confirming Exchange...\n')
 
-            #Received BER encoded STA token and decode it
-            SKB_encoded = self.connection.recv(1024)
-            SKB_decoded = asn1_file.decode('DataSharedKey', SKB_encoded)
-            SKBReal = SKB_decoded.get('sharedKeyReal')
-            SKBImag = SKB_decoded.get('sharedKeyImag')
-            print(SKBReal, SKBImag)
-            SKB = Complex(SKBReal, SKBImag)
-            print('received SKB Shared Key:')
-            print(SKB)
+#             #Received BER encoded STA token and decode it
+#             SKB_encoded = self.connection.recv(1024)
+#             SKB_decoded = asn1_file.decode('DataSharedKey', SKB_encoded)
+#             SKBReal = SKB_decoded.get('sharedKeyReal')
+#             SKBImag = SKB_decoded.get('sharedKeyImag')
+#             print(SKBReal, SKBImag)
+#             SKB = Complex(SKBReal, SKBImag)
+#             print('received SKB Shared Key:')
+#             print(SKB)
 
             # PMK_Key = ap.confirm_exchange(PKBShared)
 
-            if SKA==SKB:
-                print('keys are equal :)')
-            else:
-                print('something went wrong :(')
-                if n_Alice % 2 != 0:
-                    print("Error: Bob's secret key must be even!")
+#             if SKA==SKB:
+#                 print('keys are equal :)')
+#             else:
+#                 print('something went wrong :(')
+#                 if n_Alice % 2 != 0:
+#                     print("Error: Bob's secret key must be even!")
+            # Sending keys to OUTPUT and CLIENTs
+            print ("Getting keys...\n")
+            lock.acquire()
 
-            # lock.release()
+            print("Printing secret key...\n")
+            secret_key = "secret.key"
+
+            print("Printing nbit key...\n")
+            nbit_key = "nbit.key"
+
+            output_secret_key = encrypting(PMK_Key, secret_key)
+            print("This file ", output_secret_key, " is encrypted secret key\n")
+            
+            output_nbit_key = encrypting(PMK_Key, nbit_key)
+            print("This file ", output_nbit_key, " is encrypted nbit key\n")
+
+            s = open(output_secret_key, "rb")
+            keycontent = s.read(8192)
+
+            t = open(output_nbit_key, "rb")
+            nbitcontent = t.read(8192)
+
+            #Encode key in BER format
+            priv_key_BER = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitcontent})
+
+            # Send the BER encoded file to the peer
+            while (keycontent and nbitcontent):
+                self.connection.sendall(priv_key_BER)
+                keycontent = s.read(8192)
+                nbitcontent = t.read(8192)
+                priv_key_BER = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitcontent})
+            s.close()
+            print('Original secret key file size: ', os.path.getsize(secret_key))
+            print ('Encrypted secret key file size: ', os.path.getsize(output_secret_key))
+            os.system("md5sum secret.key")
+
+            print('Original nbit key file size: ', os.path.getsize(nbit_key))
+            print ('Encrypted nbit key file size: ', os.path.getsize(output_nbit_key))
+            os.system("md5sum nbit.key")
+
+            lock.release()
 
 #######################################################################
 
