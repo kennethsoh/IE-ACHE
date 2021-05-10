@@ -1051,39 +1051,39 @@ def handshake():
 #             if n_Alice % 2 != 0:
 #                 print("Error: Alice's secret key must be even!")
        # Open the received secret file from the key generator
-          with open('secret.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
-              print ('File opened...\n')
-              while True:
-                  # print ('Receiving data...\n')
-                  secret_key_BER = sock.recv(16396, socket.MSG_WAITALL)
-                  if (len(secret_key_BER) > 10):
-                      keys_decoded = asn1_file.decode('DataKey', secret_key_BER)
-                      secret_key = keys_decoded.get('key')
-                      nbit_key = keys_decoded.get('nbit')
-                  else:
-                      break
-                  if not (secret_key or nbit_key):
-                      break
-                  s.write(secret_key)
-                  t.write(nbit_key)
+        with open('secret.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
+           print ('File opened...\n')
+           while True:
+               # print ('Receiving data...\n')
+               secret_key_BER = sock.recv(16396, socket.MSG_WAITALL)
+               if (len(secret_key_BER) > 10):
+                   keys_decoded = asn1_file.decode('DataKey', secret_key_BER)
+                   secret_key = keys_decoded.get('key')
+                   nbit_key = keys_decoded.get('nbit')
+               else:
+                   break
+               if not (secret_key or nbit_key):
+                   break
+               s.write(secret_key)
+               t.write(nbit_key)
 
-              s.close()
-              t.close()
+           s.close()
+           t.close()
 
-              print ('Successfully got the files\n')
+           print ('Successfully got the files\n')
 
-          print ('Encrypted secret file size: ', os.path.getsize('secret.key.hacklab'))
-          print ('Encrypted nbit file size: ', os.path.getsize('nbit.key.hacklab'))
+       print ('Encrypted secret file size: ', os.path.getsize('secret.key.hacklab'))
+       print ('Encrypted nbit file size: ', os.path.getsize('nbit.key.hacklab'))
 
-          print ('Decrypting the files...\n')
+       print ('Decrypting the files...\n')
 
-          decrypted_secret_key = decrypting(PMK_Key, 'secret.key.hacklab')
-          print('Acquired original secret key file size: ', os.path.getsize(decrypted_secret_key))
-          os.system("md5sum secret.key")
+       decrypted_secret_key = decrypting(SKB, 'secret.key.hacklab')
+       print('Acquired original secret key file size: ', os.path.getsize(decrypted_secret_key))
+       os.system("md5sum secret.key")
 
-          decrypted_nbit_key = decrypting(PMK_Key, 'nbit.key.hacklab')
-          print('Acquired original nbit key file size: ', os.path.getsize(decrypted_nbit_key))
-          os.system("md5sum nbit.key")
+      decrypted_nbit_key = decrypting(PMK_Key, 'nbit.key.hacklab')
+      print('Acquired original nbit key file size: ', os.path.getsize(decrypted_nbit_key))
+      os.system("md5sum nbit.key")
 
 #######################################################################
 
