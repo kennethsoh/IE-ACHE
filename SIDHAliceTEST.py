@@ -1087,10 +1087,10 @@ class ClientThread(threading.Thread):
             print("Printing nbit key...\n")
             nbit_key = "nbit.key"
 
-            output_secret_key = encrypting(PMK_Key, secret_key)
+            output_secret_key = encrypting(SKA, secret_key)
             print("This file ", output_secret_key, " is encrypted secret key\n")
             
-            output_nbit_key = encrypting(PMK_Key, nbit_key)
+            output_nbit_key = encrypting(SKA, nbit_key)
             print("This file ", output_nbit_key, " is encrypted nbit key\n")
 
             s = open(output_secret_key, "rb")
