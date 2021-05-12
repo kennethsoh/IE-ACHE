@@ -1029,7 +1029,7 @@ def handshake():
         SKA = PKBShared_decoded.get('data')
 
         print('received SKA Shared Key', SKA)
-    SKA_Encoded = secretKeyEncoder().encode(SKA)
+        SKA_Encoded = secretKeyEncoder().encode(SKA)
         print(SKA_Encoded)
         print(type(SKA_Encoded))
         # PMK_Key = ap.confirm_exchange(PKBShared)
