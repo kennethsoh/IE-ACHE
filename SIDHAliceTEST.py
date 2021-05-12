@@ -26,6 +26,8 @@ import asn1tools
 import threading
 import cProfile, pstats, io
 from random import randint
+import json
+from json import JSONEncoder
 pr = cProfile.Profile()
 pr.enable()
 
@@ -114,7 +116,9 @@ class Complex(object):
     def __mod__(self, p):
         return Complex(self.re % p, self.im % p)    
 
-
+class secretKeyEncoder(JSONEncoder):
+        def default(self, o):
+            return o.__dict__
 ####################################################################
 
 def j_inv(A, C):  
@@ -1047,6 +1051,11 @@ class ClientThread(threading.Thread):
             print(SKA)
             print('')
             
+            #Hashing Shared Secret
+            SKA_ComplexToString = secretKeyEncoder().encode(SKA)
+            SKA_StringToBytes = SKA_ComplexToString.encode()
+            #SK = Skeleton Key
+            SK = hashlib.sha256(SKA_StringToBytes).digest()
 #             #Encode ap_token to be BER and send to peer
 #             sharedKeyRealA = SKA.re
 #             sharedKeyImagA = SKA.im
@@ -1087,10 +1096,10 @@ class ClientThread(threading.Thread):
             print("Printing nbit key...\n")
             nbit_key = "nbit.key"
 
-            output_secret_key = encrypting(SKA, secret_key)
+            output_secret_key = encrypting(SK, secret_key)
             print("This file ", output_secret_key, " is encrypted secret key\n")
-            
-            output_nbit_key = encrypting(SKA, nbit_key)
+
+            output_nbit_key = encrypting(SK, nbit_key)
             print("This file ", output_nbit_key, " is encrypted nbit key\n")
 
             s = open(output_secret_key, "rb")
