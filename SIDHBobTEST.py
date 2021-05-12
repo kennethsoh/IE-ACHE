@@ -22,6 +22,8 @@ import asn1tools
 import sys
 import cProfile, pstats, io
 from random import randint
+import json
+from json import JSONEncoder
 pr = cProfile.Profile()
 pr.enable()
 
@@ -115,7 +117,9 @@ class Complex(object):
     def __mod__(self, p):
         return Complex(self.re % p, self.im % p)    
 
-
+class secretKeyEncoder(JSONEncoder):
+        def default(self, o):
+            return o.__dict__
 ####################################################################
 
 def j_inv(A, C):  
@@ -1021,6 +1025,9 @@ def handshake():
         print(SKB)
         print('')
         
+        SKB_Encoded = secretKeyEncoder().encode(SKB)
+        print(SKB_Encoded)
+        print(type(SKB_Encoded))
 #         #Encode ap_token to be BER and send to peer
 #         sharedKeyRealB = SKB.re
 #         sharedKeyImagB = SKB.im
