@@ -996,7 +996,7 @@ class ClientThread(threading.Thread):
             keyimag3 = PKA[2].im
             encoded = asn1_file.encode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
 
-            print('data send', PKA[0], PKA[1], PKA[2])
+            print('Data Sent', PKA[0], PKA[1], PKA[2])
 
             #Send BER encoded scalar / element ap to peer
             self.connection.sendall(encoded)
@@ -1025,26 +1025,11 @@ class ClientThread(threading.Thread):
             print(PKB[0])
             print(PKB[1])
             print(PKB[2])
-
-            # data = scalar_element_ap.split('\n')
-            # print (data[0])
-            # print (data[1])
-            # scalar_sta = data[0]
-            # element_sta = data[1]
-            # print()
-            # print ('scalar_sta recv:',scalar_sta)
-            # print()
-            # print ('element_sta recv:',element_sta)
-            # print ()
-            # print ()
-            # namedtuple_element_sta = eval(element_sta)
-            # print(namedtuple_element_sta.y, namedtuple_element_sta.x)
-            # print ()
-            # print ()
-            # ap_token = ap.compute_shared_secret(namedtuple_element_sta, int(scalar_sta), other_mac)
+            
             print()
             logger.info('Computing shared secret...\n')
             
+            #Shared Secret
             SKA = shared_secret_Alice(n_Alice, PKB, splits_Alice, MAX_Alice)
             print('')
             print("Alice's shared secret:")
