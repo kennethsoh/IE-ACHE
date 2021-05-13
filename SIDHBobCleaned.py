@@ -945,8 +945,6 @@ def handshake():
         logger.info('%s',(PKB[0]))
         logger.info('%s',(PKB[1]))
         logger.info('%s',(PKB[2]))
-        #print((PKB[1]))
-        #print((PKB[2]))
         keyreal1 = PKB[0].re
         keyimag1 = PKB[0].im
         keyreal2 = PKB[1].re
