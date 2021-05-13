@@ -64,7 +64,7 @@ print ("Connecting to %s (%s) with %s" % (local_hostname, local_fqdn, ip_address
 logger = logging.getLogger('Key Exchange')
 logger.setLevel(logging.INFO)
 # create file handler which logs even debug messages
-fh = logging.FileHandler('dragonfly.log')
+fh = logging.FileHandler('keyexchange.log')
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
@@ -935,16 +935,18 @@ def handshake():
         logger.info('Key Gen found. Key exchange begins...\n')
 
         n_Bob= randint(0,lB**eB)
-        print("Bob's secret key:")
-        print(n_Bob)
+        logger.info("Bob's secret key:")
+        logger.info(n_Bob)
         print('')
 
         PKB = keygen_Bob(n_Bob, params_Bob, splits_Bob, MAX_Bob)
         print('')
-        print("Bob's Public Key:")
-        print((PKB[0]))
-        print((PKB[1]))
-        print((PKB[2]))
+        logger.info("Bob's Public Key:")
+        logger.info('%s',(PKB[0]))
+        logger.info('%s',(PKB[1]))
+        logger.info('%s',(PKB[2]))
+        #print((PKB[1]))
+        #print((PKB[2]))
         keyreal1 = PKB[0].re
         keyimag1 = PKB[0].im
         keyreal2 = PKB[1].re
@@ -955,7 +957,7 @@ def handshake():
 
         print('')
         print('')
-        print('Data Sent', PKB[0], PKB[1], PKB[2])
+        logger.info('Data Sent %s %s %s', PKB[0], PKB[1], PKB[2])
 
         #Sends Bob's encoded public key to Key Gen.
         sock.sendall(encoded)
@@ -983,10 +985,10 @@ def handshake():
 
         PKA = [phiPX, phiQX, phiDX]
 
-        print('Public Key Received: ')
-        print(PKA[0])
-        print(PKA[1])
-        print(PKA[2])
+        logger.info('Public Key Received: ')
+        logger.info(PKA[0])
+        logger.info(PKA[1])
+        logger.info(PKA[2])
       
         print()
         logger.info('Computing shared secret...\n')
@@ -995,8 +997,8 @@ def handshake():
 
         SKB = shared_secret_Bob(n_Bob, PKA, splits_Bob, MAX_Bob)
         print('')
-        print("Bob's shared secret:")
-        print(SKB)
+        logger.info("Bob's shared secret:")
+        logger.info(SKB)
         print('')
         
         #Hashing Shared Secret
