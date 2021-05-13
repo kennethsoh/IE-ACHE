@@ -1180,35 +1180,5 @@ def handshake():
 
 #######################################################################
 
-# n_Alice = randint(0,(lA**eA)/2)
-# n_Alice = 2*n_Alice
-# print("Alice's secret key:")
-# print(n_Alice)
-# print('')
-
-# PKA = keygen_Alice(n_Alice, params_Alice, splits_Alice, MAX_Alice)
-# print('')
-# print("Alice's Public Key:")
-# print((PKA[0]))
-# print((PKA[1]))
-# print((PKA[2]))
-# print('')
-
-# SKA = shared_secret_Alice(n_Alice, PKB, splits_Alice, MAX_Alice)
-# print('')
-# print("Alice's shared secret:")
-# print(SKA)
-# print('')
-
-#######################################################################
-
-
-# if SKA==SKB:
-#   print('keys are equal :)')
-# else:
-#   print('something went wrong :(')
-#   if n_Alice % 2 != 0:
-#       print("Error: Alice's secret key must be even!")
-
 handshake()
 sock.close()
