@@ -63,7 +63,7 @@ sock.bind(server_address)
 logger = logging.getLogger('Key Exchange')
 logger.setLevel(logging.INFO)
 # create file handler which logs even debug messages
-fh = logging.FileHandler('dragonfly.log')
+fh = logging.FileHandler('keyexchange.log')
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
@@ -942,7 +942,7 @@ class ClientThread(threading.Thread):
         threading.Thread.__init__(self)
         self.clientAddr = clientAddr
         self.connection = connection
-        print("Connection coming from", connection)
+        logger.info("Connection coming from %s", connection)
 
     def run(self):
 
@@ -956,15 +956,17 @@ class ClientThread(threading.Thread):
             #Calculates Secret and Public Keys
             n_Alice = randint(0,(lA**eA)/2)
             n_Alice = 2*n_Alice
-            print("Alice's secret key:")
-            print(n_Alice)
+            logger.info("Alice's secret key:")
+            logger.info(n_Alice)
             print('')
             PKA = keygen_Alice(n_Alice, params_Alice, splits_Alice, MAX_Alice)
             print('')
-            print("Alice's Public Key:")
-            print((PKA[0]))
-            print((PKA[1]))
-            print((PKA[2]))
+            logger.info("Alice's Public Key:")
+            logger.info('%s',(PKA[0]))
+            logger.info('%s',(PKA[1]))
+            logger.info('%s',(PKA[2]))
+            #print((PKA[1]))
+            #print((PKA[2]))
             print('')
 
             keyreal1 = PKA[0].re
@@ -975,7 +977,7 @@ class ClientThread(threading.Thread):
             keyimag3 = PKA[2].im
             encoded = asn1_file.encode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
 
-            print('Data Sent', PKA[0], PKA[1], PKA[2])
+            logger.info('Data Sent %s %s %s', PKA[0], PKA[1], PKA[2])
 
             #Sends Alice's encoded Public key to Bob
             self.connection.sendall(encoded)
@@ -1000,18 +1002,18 @@ class ClientThread(threading.Thread):
         
             PKB = [phiPX, phiQX, phiDX]
 
-            print('Public Key Received: ')
-            print(PKB[0])
-            print(PKB[1])
-            print(PKB[2])
+            logger.info('Public Key Received: ')
+            logger.info(PKB[0])
+            logger.info(PKB[1])
+            logger.info(PKB[2])
 
             print()
             logger.info('Computing shared secret...\n')
             
             SKA = shared_secret_Alice(n_Alice, PKB, splits_Alice, MAX_Alice)
             print('')
-            print("Alice's shared secret:")
-            print(SKA)
+            logger.info("Alice's shared secret:")
+            logger.info(SKA)
             print('')
             
             #Hashing Shared Secret
