@@ -1,19 +1,11 @@
 #!/usr/bin/env python3
+# implementation of SIDH with optimal strategies
+# and Edwards arithmetic
+#
+# based on code from https://github.com/Microsoft/PQCrypto-SIDH
+# by Costello, Longa, Naehrig (Microsoft Research)
+# 
 
-#"""
-#Implements the Dragonfly (SAE) handshake.
-
-#Instead of using a client (STA) and a access point (AP), we
-#just programmatically create a peer to peer network of two participiants.
-#Either party may initiate the SAE protocol, either party can be the client and server.
-
-#In a mesh scenario, where two APs (two equals) are trying to establish a connection
-#between each other and each one could have the role of supplicant or authenticator.
-
-#SAE is build upon the Dragonfly Key Exchange, which is described in https://tools.ietf.org/html/rfc7664.
-
-#https://stackoverflow.com/questions/31074172/elliptic-curve-point-addition-over-a-finite-field-in-python
-#"""
 import time
 import hashlib
 import random
@@ -28,6 +20,12 @@ from Cryptodome.Cipher import AES
 from Cryptodome import Random
 import asn1tools
 import sys
+import cProfile, pstats, io
+from random import randint
+import json
+from json import JSONEncoder
+pr = cProfile.Profile()
+pr.enable()
 
 #Compile asn1 file for secret_key
 asn1_file = asn1tools.compile_files('declaration.asn')
@@ -48,6 +46,7 @@ server_address = ('192.168.0.3', 4380)
 while True:
     try:
         sock.connect(server_address)
+        print("Successfully connected to Keygen")
         break
     except ConnectionRefusedError as conn_error:
         print('A connection error has occured')
@@ -62,10 +61,10 @@ while True:
 
 print ("Connecting to %s (%s) with %s" % (local_hostname, local_fqdn, ip_address))
 
-logger = logging.getLogger('dragonfly')
+logger = logging.getLogger('Key Exchange')
 logger.setLevel(logging.INFO)
 # create file handler which logs even debug messages
-fh = logging.FileHandler('dragonfly.log')
+fh = logging.FileHandler('keyexchange.log')
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
@@ -79,453 +78,837 @@ logger.addHandler(ch)
 logger.addHandler(fh)
 
 
-Point = namedtuple("Point", "x y")
-# The point at infinity (origin for the group law).
-O = 'Origin'
+class Complex(object):
+    def __init__(self, real, imag=0):
+        self.re = int(real)
+        self.im = int(imag)
+        
+    def __add__(self, other):
+        return Complex(self.re + other.re, self.im + other.im)
 
-def lsb(x):
-    binary = bin(x).lstrip('0b')
-    return binary[0]
+    def __sub__(self, other):
+        return Complex(self.re - other.re, self.im - other.im)
 
-def legendre(a, p):
-    return pow(a, (p - 1) // 2, p)
+    def __mul__(self, other):
+        ab0=self.re*other.re
+        ab1=self.im*other.im
+        c=(self.re+self.im)*(other.re+other.im)
+        return Complex((ab0-ab1)%p, (c-ab0-ab1)%p)
 
-def tonelli_shanks(n, p):
-    """
-    # https://rosettacode.org/wiki/Tonelli-Shanks_algorithm#Python
-    """
-    assert legendre(n, p) == 1, "not a square (mod p)"
-    q = p - 1
-    s = 0
-    while q % 2 == 0:
-        q //= 2
-        s += 1
-    if s == 1:
-        return pow(n, (p + 1) // 4, p)
-    for z in range(2, p):
-        if p - 1 == legendre(z, p):
-            break
-    c = pow(z, q, p)
-    r = pow(n, (q + 1) // 2, p)
-    t = pow(n, q, p)
-    m = s
-    t2 = 0
-    while (t - 1) % p != 0:
-        t2 = (t * t) % p
-        for i in range(1, m):
-            if (t2 - 1) % p == 0:
-                break
-            t2 = (t2 * t2) % p
-        b = pow(c, 1 << (m - i - 1), p)
-        r = (r * b) % p
-        c = (b * b) % p
-        t = (t * c) % p
-        m = i
-    return r
 
-class Curve():
-    """
-    Mathematical operations on a Elliptic Curve.
+    def __neg__(self):  
+        return Complex(-self.re, -self.im)
 
-    A lot of code taken from:
-    https://stackoverflow.com/questions/31074172/elliptic-curve-point-addition-over-a-finite-field-in-python
-    """
+    def __eq__(self, other):
+        return self.re == other.re and self.im == other.im
 
-    def __init__(self, a, b, p):
-        self.a = a
-        self.b = b
-        self.p = p
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
-    def curve_equation(self, x):
-        """
-        We currently use the elliptic curve
-        NIST P-384
-        """
-        return (pow(x, 3) + (self.a * x) + self.b) % self.p
+    def __str__(self):
+        return '(%u, %u)' % (self.re %p, self.im %p)
 
-    def is_quadratic_residue(self, x):
-        """
-        https://en.wikipedia.org/wiki/Euler%27s_criterion
-        Computes Legendre Symbol.
-        """
-        return pow(x, (self.p-1) // 2, self.p) == 1
+    def __repr__(self):
+        return 'Complex' + str(self.re ,self.im)
 
-    def valid(self, P):
-        """
-        Determine whether we have a valid representation of a point
-        on our curve.  We assume that the x and y coordinates
-        are always reduced modulo p, so that we can compare
-        two points for equality with a simple ==.
-        """
-        if P == O:
-            return True
+    def __pow__(self, power): #only squares required
+        return Complex(((self.re+self.im)*(self.re-self.im))%p, (2*self.im*self.re)%p)
+        
+    def __mod__(self, p):
+        return Complex(self.re % p, self.im % p)    
+
+class secretKeyEncoder(JSONEncoder):
+        def default(self, o):
+            return o.__dict__
+####################################################################
+
+def j_inv(A, C):  
+    #input: parameters (A:C) of projective curve
+    #output: j-invariant
+    jinv = A**2  
+    t1 = C**2
+    t0 = t1 + t1
+    t0 = jinv - t0
+    t0 = t0 - t1
+    jinv = t0 - t1
+    t1 = t1**2
+    jinv = jinv * t1
+    t0 = t0 + t0
+    t0 = t0 + t0
+    t1 = t0**2
+    t0 = t0 * t1
+    t0 = t0 + t0
+    t0 = t0 + t0
+    jinv = inv(jinv)
+    jinv = t0 * jinv
+
+    return jinv   #cost: 3M+4S+8a+1I
+
+
+########################################################### 
+
+
+#function for Montgomery differential addition
+def xADD(XP, ZP, XQ, ZQ, xPQ):
+    #input: projective coordinates xP=XP/ZP and xQ=XQ/ZQ
+    #       affine difference x(P-Q)=xPQ
+    #output: projective coordinates x(Q+P)=XQP/XZP
+    t0 = XP + ZP   
+    t1 = XP - ZP
+    XP = XQ - ZQ
+    ZP = XQ + ZQ
+    t0 = (XP * t0)%p
+    t1 = (ZP * t1)%p
+    ZP = t0 - t1
+    XP = t0 + t1
+    ZP = (ZP**2)%p
+    XQP = (XP**2)%p
+    ZQP = (xPQ * ZP)%p
+    
+    return XQP, ZQP    #cost: 3M+2S+6a  
+        
+        
+##############################################################
+
+
+#function for Montgomery doubling with projective curve constant
+def xDBL(X, Z, A24, C24):
+    #input: projective coordinates xP=X/Z
+    #       curve constant A24/C24 = (A/C+2)/4
+    #output: projective coordinates x(2P)=X2/Z2
+    t0 = X - Z      #code from msr
+    t1 = X + Z
+    t0 = t0**2
+    t1 = t1**2 
+    Z2 = C24 * t0
+    X2 = Z2 * t1
+    t1 = t1 - t0
+    t0 = A24 * t1
+    Z2 = Z2 + t0
+    Z2 = Z2 * t1
+    
+    return X2, Z2   #cost: 4M+2S+4a
+
+########################################################
+
+#Edwards-version of xDBL    
+def edDBL(Y,Z,AE,DE):
+    t0=Y**2
+    t1=Z**2
+    t2=t0+t1
+    t2=t2**2
+    t0=t0**2
+    t1=t1**2
+    t2=t2-t0
+    t2=t2-t1
+    Y2=t2*AE  #Y2=2a*Y^2Z^2
+    t2=t2*DE  #t2=2d*Y^2Z^2
+    t0=t0*DE  #t0=d*Y^4
+    t1=t1*AE  #t1=a*Z^4
+    t0=t0+t1  #t0=d*Y^4+a*Z^4
+    Z2=t0-t2  #
+    Y2=Y2-t0  #cost: 5S+4M
+
+    return Y2,Z2
+
+######################################################
+
+#Edwards-version of xDBLe   
+def edDBLe(XP,ZP,A,C,e):
+    
+    C2=C+C
+    AE=A+C2
+    DE=A-C2
+    
+    YeP = XP-ZP
+    ZeP = ZP+XP
+    
+    for i in range(0,e):
+        YeP, ZeP = edDBL(YeP, ZeP, AE, DE)
+    
+    XeP=YeP+ZeP
+    ZeP=ZeP-YeP 
+    return XeP, ZeP                            #cost:4eM+5eS
+            
+###############################################################
+
+
+#function for step in Montgomery ladder
+#simultaneous doubling and differential addition
+def xDBLADD(XP,ZP,XQ,ZQ,xPQ,A24):
+    #input: projective coordinates xP=XP/ZP and xQ=XQ/ZQ, 
+    #       affine difference x(P-Q)=xPQ and 
+    #       curve constant A24=(A+2)/4. 
+    #output: projective coordinates of x(2P)=X2P/Z2P
+    #        and x(Q+P)=XQP/ZQP
+    t0 = XP + ZP                  #code from msr
+    t1 = XP - ZP 
+    X2P = t0**2
+    t2 = XQ - ZQ
+    XQP = XQ + ZQ
+    t0 = t0 * t2
+    Z2P = t1**2
+    t1 = t1 * XQP
+    t2 = X2P - Z2P
+    X2P = X2P * Z2P
+    XQP = A24 * t2
+    ZQP = t0 - t1
+    Z2P = XQP + Z2P
+    XQP = t0 + t1
+    Z2P = Z2P * t2
+    ZQP = ZQP**2
+    XQP = XQP**2
+    ZQP = xPQ * ZQP
+    
+    return X2P, Z2P, XQP, ZQP    #cost: 6M+4S+8a    
+    
+    
+################################################################
+
+
+#function for computing [2^e](X:Z) via repeated doublings
+def xDBLe(XP,ZP,A,C,e):
+    #input: projective coordinates xP=XP/ZP
+    #       curve constant A/C
+    #output: projective coordinates of x(2^e*P)=XeP/ZeP
+    A24num = C + C                      #code from msr
+    A24den = A24num + A24num
+    A24num = A24num + A
+    
+    XeP = XP
+    ZeP = ZP
+    
+    for i in range(0,e):
+        XeP, ZeP = xDBL(XeP, ZeP, A24num, A24den)
+        
+    return XeP, ZeP                            #cost:4eM+2eS+(4e+3)a
+    
+
+####################################################################
+
+#edwards-montgomery step in basefield
+def xDBLADD_basefield(XP,ZP,XQ,ZQ,xPQ,A24,C24):
+    #input: projective coordinates xP=XP/ZP and xQ=XQ/ZQ, 
+    #       affine difference x(P-Q)=xPQ and 
+    #       curve constant A24=(A+2)/4. 
+    #output: projective coordinates of x(2P)=X2P/Z2P
+    #        and x(Q+P)=XQP/ZQP
+    # function assumes A24=1, C24=2 fixed
+    
+    t0 = XP + ZP   #Montgomery-addition
+    t1 = XP - ZP
+    XP = XQ - ZQ
+    ZP = XQ + ZQ
+    t2 = (XP * t0)%p
+    t3 = (ZP * t1)%p
+    ZP = t2 - t3
+    XP = t2 + t3
+    ZP = (ZP**2)%p
+    XQP = (XP**2)%p
+    ZQP = (xPQ * ZP)%p
+
+    t1=(t1**2)%p  #Y^2    #edwards doubling
+    t0=(t0**2)%p  #Z^2
+    t2=t0+t1      #+ 
+    t2=(t2**2)%p  #y^4+z^4+2y^2z^2
+    t0=(t0**2)%p  #z^4
+    t1=(t1**2)%p  #y^4
+    t2=t2-t1
+    X2P=(t2-t0)%p #2y^2z^2
+    Z2P=(t0-t1)%p 
+
+    return X2P, Z2P, XQP, ZQP     #cost: 3M+7S+8a
+
+
+####################################################################
+
+
+#triple point in Edwards-coordinates
+def xTPL(X, Z, AE, DE):
+    #input: projective x-coordinates of xP=X/Z
+    #       curve constant A/C
+    #output: projective x-coordinates of x(3P)=X3/Z3
+    
+    Ye = X-Z     #transformation to Edwards
+    Ze = Z+X
+    
+    Ye, Ze = edDBL(Ye, Ze, AE, DE) #Edwards doubling
+    
+    t0 = Ze + Ze   #Montgomery addition
+    t1 = Ye + Ye
+    XP = X - Z
+    ZP = X + Z
+    t0 = XP * t0
+    t1 = ZP * t1
+    ZP = t0 - t1
+    XP = t0 + t1
+    ZP = ZP**2
+    X3 = XP**2
+    Z3 = X * ZP
+    X3 = X3 * Z     #cost:7S+8M
+
+    
+    
+    return X3, Z3               
+    
+
+#################################################################   
+
+#triple point e times -> [3^e](X:Z)
+def xTPLe(X, Z, A, C, e):
+    #input: projective x-coordinates (X:Z) of P
+    #       curve constant A/C
+    #output: projective x-coordinates of x([3^e]P)=Xep/ZeP
+    
+    XeP = X
+    ZeP = Z
+    
+    C2=C+C  #Edwards coefficients
+    AE=A+C2
+    DE=A-C2
+    
+    for i in range (0, e):
+        XeP, ZeP = xTPL(XeP, ZeP, AE, DE)
+        
+    return XeP, ZeP            #cost:8eM+4eS+(8e+3)a
+
+
+######################################################################
+
+#montgomery-ladder
+def LADDER(x, m, A24, C24, AliceorBob):
+    #input: affine x-coordinate of a point on E: B*y^2=x^3+A*x^2+x, 
+    #       scalar m, curve constant (A+2)/4
+    #output: projective coordinates x(mP)=X0/Z0 and x((m+1)P)=X1/Z1
+    # function assumes A24=1, C24=2 fixed
+    #if A24 != 1:
+    #   print('wrong A24-value')
+    #if C24 != 2:
+    #   print('wrong C24-value')
+    
+    binary = lambda n: n>0 and [n&1]+binary(n>>1) or []
+    bits = binary(m)
+    
+    A24, C24 = 1, 2
+    X0, Z0 = 1, 0      #initialization with infinity
+    X1, Z1 = x, 1
+    
+    if AliceorBob == 'Alice':
+        nbits = eAbits
+    else:
+        nbits = eBbits
+        
+    #for i in range(0, nbits - len(bits)):
+    #   X0, Z0, X1, Z1 = xDBLADD_basefield(X0, Z0, X1, Z1, x, A24, C24)
+    
+    for i in range(len(bits)-1, -1, -1):    
+        if bits[i] == 0:
+            X0, Z0, X1, Z1 = xDBLADD_basefield(X0, Z0, X1, Z1, x, A24, C24)
         else:
-            return (
-                    (P.y**2 - (P.x**3 + self.a*P.x + self.b)) % self.p == 0 and
-                    0 <= P.x < self.p and 0 <= P.y < self.p)
+            X1, Z1, X0, Z0 = xDBLADD_basefield(X1, Z1, X0, Z0, x, A24, C24) 
+            
+    return X0, Z0, X1, Z1       #cost:5nM+4nS+9na   
+                            
+    
+#########################################################################
 
-    def inv_mod_p(self, x):
-        """
-        Compute an inverse for x modulo p, assuming that x
-        is not divisible by p.
-        """
-        if x % self.p == 0:
-            raise ZeroDivisionError("Impossible inverse")
-        return pow(x, self.p-2, self.p)
+#function for computing P+[m]Q
+def secret_pt(x, y, m, AliceorBob):
+    #input: point P=(x,y) in base field subgroup, Q=(-x,iy), scalar m
+    #output: RX0, RX1, RZ in Fp with (RX0+iRX1)/RZ is x-coordinate of P+[m]Q
+    
+    A24, C24 = 1, 2
+    X0, Z0, X1, Z1 = LADDER(-x, m, A24, C24, AliceorBob)
+    
+    RZ = (x * Z0)%p
+    RX0 = (X0 * x)%p
+    t4 = (X0 + RZ)%p
+    RZ = (X0 - RZ)%p
+    t0 = (t4**2)%p
+    RX0 = Z0 - RX0
+    t0 = (t0 * X1)%p
+    RX0 = (RX0 * RZ)%p
+    t2 = (y * Z1)%p
+    t1 = (y * Z0)%p
+    t2 = t2 + t2
+    RX1 = (t2 * Z0)%p
+    RX0 = (RX0 * Z1)%p
+    RX0 = RX0 - t0
+    t1 = (t1 * RX1)%p
+    t0 = (RX1**2)%p
+    t2 = (t2 * RX1)%p
+    RX1 = (t1 * RX0)%p
+    t3 = t1 + RX0
+    RX1 = RX1 + RX1
+    t1 = t1 - RX0
+    t1 = (t1 * t3)%p
+    RZ = (RZ**2)%p
+    t2 = (t2 * t4)%p
+    t2 = (t2 * RZ)%p
+    RZ = (t0 * RZ)%p
+    RX0 = t1 - t2
+    RX0 = RX0 % p
+    RX1 = RX1 % p
+    return RX0, RX1, RZ        #cost: 15M+3S+9a
+    
+    
+#####################################################################
 
-    def ec_inv(self, P):
-        """
-        Inverse of the point P on the elliptic curve y^2 = x^3 + ax + b.
-        """
-        if P == O:
-            return P
-        return Point(P.x, (-P.y) % self.p)
 
-    def ec_add(self, P, Q):
-        """
-        Sum of the points P and Q on the elliptic curve y^2 = x^3 + ax + b.
-        https://stackoverflow.com/questions/31074172/elliptic-curve-point-addition-over-a-finite-field-in-python
-        """
-        if not (self.valid(P) and self.valid(Q)):
-            raise ValueError("Invalid inputs")
+#three-point-ladder by de feo et al. calculates P+[m]Q
+def LADDER_3_pt(m, xP, xQ, xPQ, A, AliceorBob):
+    #input: affine x-coordinates xP, xQ, xPQ
+    #       curve constant A, scalar m
+    #output: projectove x.coordinate x(P+[m]Q)=WX/WZ
+    
+    binary = lambda n: n>0 and [n&1]+binary(n>>1) or []
+    bits = binary(m)
 
-        # Deal with the special cases where either P, Q, or P + Q is
-        # the origin.
-        if P == O:
-            result = Q
-        elif Q == O:
-            result = P
-        elif Q == self.ec_inv(P):
-            result = O
+    A24 = A + Complex(2)
+    A24 = A24 * inv4
+    
+    UX = Complex(1) 
+    UZ = Complex(0)                    #initialization with infinity
+    VX = xQ
+    VZ = Complex(1)
+    WX = xP
+    WZ = Complex(1)
+    
+    if AliceorBob == 'Alice':
+        nbits = eAbits
+    else:
+        nbits = eBbits
+        
+    #for i in range(0, nbits - len(bits)):
+    #   WX, WZ = xADD(UX, UZ, WX, WZ, xP)
+    #   UX, UZ, VX, VZ = xDBLADD(UX, UZ, VX, VZ, xQ, A24)
+        
+    for i in range(len(bits)-1, -1, -1):    
+        if bits[i] == 0:
+            WX, WZ = xADD(UX, UZ, WX, WZ, xP)
+            UX, UZ, VX, VZ = xDBLADD(UX, UZ, VX, VZ, xQ, A24)
         else:
-            # Cases not involving the origin.
-            if P == Q:
-                dydx = (3 * P.x**2 + self.a) * self.inv_mod_p(2 * P.y)
-            else:
-                dydx = (Q.y - P.y) * self.inv_mod_p(Q.x - P.x)
-            x = (dydx**2 - P.x - Q.x) % self.p
-            y = (dydx * (P.x - x) - P.y) % self.p
-            result = Point(x, y)
-
-        # The above computations *should* have given us another point
-        # on the curve.
-        assert self.valid(result)
-        return result
-
-    def double_add_algorithm(self, scalar, P):
-        """
-        Double-and-Add Algorithm for Point Multiplication
-        Input: A scalar in the range 0-p and a point on the elliptic curve P
-        https://stackoverflow.com/questions/31074172/elliptic-curve-point-addition-over-a-finite-field-in-python
-        """
-        assert self.valid(P)
-
-        b = bin(scalar).lstrip('0b')
-        T = P
-        for i in b[1:]:
-            T = self.ec_add(T, T)
-            if i == '1':
-                T = self.ec_add(T, P)
-
-        assert self.valid(T)
-        return T
-
-class Peer:
-    """
-    Implements https://wlan1nde.wordpress.com/2018/09/14/wpa3-improving-your-wlan-security/
-    Take a ECC curve from here: https://safecurves.cr.yp.to/
-
-    Example: NIST P-384
-    y^2 = x^3-3x+27580193559959705877849011840389048093056905856361568521428707301988689241309860865136260764883745107765439761230575
-    modulo p = 2^384 - 2^128 - 2^96 + 2^32 - 1
-    2000 NIST; also in SEC 2 and NSA Suite B
-
-    See here: https://www.rfc-editor.org/rfc/rfc5639.txt
-
-Curve-ID: brainpoolP256r1
-      p =
-      A9FB57DBA1EEA9BC3E660A909D838D726E3BF623D52620282013481D1F6E5377
-      A =
-      7D5A0975FC2C3057EEF67530417AFFE7FB8055C126DC5C6CE94A4B44F330B5D9
-      B =
-      26DC5C6CE94A4B44F330B5D9BBD77CBF958416295CF7E1CE6BCCDC18FF8C07B6
-      x =
-      8BD2AEB9CB7E57CB2C4B482FFC81B7AFB9DE27E1E3BD23C23A4453BD9ACE3262
-      y =
-      547EF835C3DAC4FD97F8461A14611DC9C27745132DED8E545C1D54C72F046997
-      q =
-      A9FB57DBA1EEA9BC3E660A909D838D718C397AA3B561A6F7901E0E82974856A7
-      h = 1
-    """
-
-    def __init__(self, password, mac_address, name):
-        self.name = name
-        self.password = password
-        self.mac_address = mac_address
-
-        # Try out Curve-ID: brainpoolP256t1
-        self.p = int('A9FB57DBA1EEA9BC3E660A909D838D726E3BF623D52620282013481D1F6E5377', 16)
-        self.a = int('7D5A0975FC2C3057EEF67530417AFFE7FB8055C126DC5C6CE94A4B44F330B5D9', 16)
-        self.b = int('26DC5C6CE94A4B44F330B5D9BBD77CBF958416295CF7E1CE6BCCDC18FF8C07B6', 16)
-        self.q = int('A9FB57DBA1EEA9BC3E660A909D838D718C397AA3B561A6F7901E0E82974856A7', 16)
-        self.curve = Curve(self.a, self.b, self.p)
-
-        # A toy curve
-        # self.a, self.b, self.p = 2, 2, 17
-        # self.q = 19
-        # self.curve = Curve(self.a, self.b, self.p)
-
-    def initiate(self, other_mac, k=40):
-        """
-        See algorithm in https://tools.ietf.org/html/rfc7664
-        in section 3.2.1
-        """
-        self.other_mac = other_mac
-        found = 0
-        num_valid_points = 0
-        counter = 1
-        n = self.p.bit_length() + 64
-
-        while counter <= k:
-            base = self.compute_hashed_password(counter)
-            temp = self.key_derivation_function(n, base, 'Dragonfly Hunting And Pecking')
-            seed = (temp % (self.p - 1)) + 1
-            val = self.curve.curve_equation(seed)
-            if self.curve.is_quadratic_residue(val):
-                if num_valid_points < 5:
-                    x = seed
-                    save = base
-                    found = 1
-                    num_valid_points += 1
-                    logger.debug('Got point after {} iterations'.format(counter))
-
-            counter = counter + 1
-
-        if found == 0:
-            logger.error('No valid point found after {} iterations'.format(k))
-        elif found == 1:
-            # https://crypto.stackexchange.com/questions/6777/how-to-calculate-y-value-from-yy-mod-prime-efficiently
-            # https://rosettacode.org/wiki/Tonelli-Shanks_algorithm
-            y = tonelli_shanks(self.curve.curve_equation(x), self.p)
-
-            PE = Point(x, y)
-
-            # check valid point
-            assert self.curve.curve_equation(x) == pow(y, 2, self.p)
-
-            logger.info('[{}] Using {}-th valid Point={}'.format(self.name, num_valid_points, PE))
-            logger.info('[{}] Point is on curve: {}'.format(self.name, self.curve.valid(PE)))
-
-            self.PE = PE
-            assert self.curve.valid(self.PE)
-
-    def commit_exchange(self):
-        """
-        This is basically Diffie Hellman Key Exchange (or in our case ECCDH)
-
-        In the Commit Exchange, both sides commit to a single guess of the
-        password.  The peers generate a scalar and an element, exchange them
-        with each other, and process the other's scalar and element to
-        generate a common and shared secret.
-
-        If we go back to elliptic curves over the real numbers, there is a nice geometric
-        interpretation for the ECDLP: given a starting point P, we compute 2P, 3P, . . .,
-        d P = T , effectively hopping back and forth on the elliptic curve. We then publish
-        the starting point P (a public parameter) and the final point T (the public key). In
-        order to break the cryptosystem, an attacker has to figure out how often we “jumped”
-        on the elliptic curve. The number of hops is the secret d, the private key.
-        """
-        # seed the PBG before picking a new random number
-        # random.seed(time.process_time())
-
-        # None or no argument seeds from current time or from an operating
-        # system specific randomness source if available.
-        random.seed()
-
-        # Otherwise, each party chooses two random numbers, private and mask
-        self.private = random.randrange(1, self.p)
-        self.mask = random.randrange(1, self.p)
-
-        logger.debug('[{}] private={}'.format(self.name, self.private))
-        logger.debug('[{}] mask={}'.format(self.name, self.mask))
-
-        # These two secrets and the Password Element are then used to construct
-        # the scalar and element:
-
-        # what is q?
-        # o  A point, G, on the elliptic curve, which serves as a generator for
-        #    the ECC group.  G is chosen such that its order, with respect to
-        #    elliptic curve addition, is a sufficiently large prime.
-        #
-        # o  A prime, q, which is the order of G, and thus is also the size of
-        #    the cryptographic subgroup that is generated by G.
-
-        # https://math.stackexchange.com/questions/331329/is-it-possible-to-compute-order-of-a-point-over-elliptic-curve
-        # In the elliptic Curve cryptography, it is said that the order of base point
-        # should be a prime number, and order of a point P is defined as k, where kP=O.
-
-        # Theorem 9.2.1 The points on an elliptic curve together with O
-        # have cyclic subgroups. Under certain conditions all points on an
-        # elliptic curve form a cyclic group.
-        # For this specific curve the group order is a prime and, according to Theo-
-        # rem 8.2.4, every element is primitive.
-
-        # Question: What is the order of our PE?
-        # the order must be p, since p is a prime
-
-        self.scalar = (self.private + self.mask) % self.q
-
-        # If the scalar is less than two (2), the private and mask MUST be
-        # thrown away and new values generated.  Once a valid scalar and
-        # Element are generated, the mask is no longer needed and MUST be
-        # irretrievably destroyed.
-        if self.scalar < 2:
-            raise ValueError('Scalar is {}, regenerating...'.format(self.scalar))
-
-        P = self.curve.double_add_algorithm(self.mask, self.PE)
-
-        # get the inverse of res
-        # −P = (x_p , p − y_p ).
-        self.element = self.curve.ec_inv(P)
-
-        assert self.curve.valid(self.element)
-
-        # The peers exchange their scalar and Element and check the peer's
-        # scalar and Element, deemed peer-scalar and Peer-Element.  If the peer
-        # has sent an identical scalar and Element -- i.e., if scalar equals
-        # peer-scalar and Element equals Peer-Element -- it is sign of a
-        # reflection attack, and the exchange MUST be aborted.  If the values
-        # differ, peer-scalar and Peer-Element must be validated.
-
-        logger.info('[{}] Sending scalar and element to the Peer!'.format(self.name))
-        logger.info('[{}] Scalar={}'.format(self.name, self.scalar))
-        logger.info('[{}] Element={}'.format(self.name, self.element))
-
-        return self.scalar, self.element
-
-    def compute_shared_secret(self, peer_element, peer_scalar, peer_mac):
-        """
-        ss = F(scalar-op(private,
-                                         element-op(peer-Element,
-                                                                scalar-op(peer-scalar, PE))))
-
-        AP1: K = private(AP1) • (scal(AP2) • P(x, y) ◊ new_point(AP2))
-                   = private(AP1) • private(AP2) • P(x, y)
-        AP2: K = private(AP2) • (scal(AP1) • P(x, y) ◊ new_point(AP1))
-                   = private(AP2) • private(AP1) • P(x, y)
-
-        A shared secret element is computed using one’s rand and
-        the other peer’s element and scalar:
-        Alice: K = rand A • (scal B • PW + elemB )
-        Bob: K = rand B • (scal A • PW + elemA )
-
-        Since scal(APx) • P(x, y) is another point, the scalar multiplied point
-        of e.g. scal(AP1) • P(x, y) is added to the new_point(AP2) and afterwards
-        multiplied by private(AP1).
-        """
-        self.peer_element = peer_element
-        self.peer_scalar = peer_scalar
-        self.peer_mac = peer_mac
-
-        assert self.curve.valid(self.peer_element)
-
-        # If both the peer-scalar and Peer-Element are
-        # valid, they are used with the Password Element to derive a shared
-        # secret, ss:
-
-        Z = self.curve.double_add_algorithm(self.peer_scalar, self.PE)
-        ZZ = self.curve.ec_add(self.peer_element, Z)
-        K = self.curve.double_add_algorithm(self.private, ZZ)
-
-        self.k = K[0]
-
-        logger.info('[{}] Shared Secret ss={}'.format(self.name, self.k))
-
-        own_message = '{}{}{}{}{}{}'.format(self.k , self.scalar , self.peer_scalar , self.element[0] , self.peer_element[0] , self.mac_address).encode()
-
-        H = hashlib.sha256()
-        H.update(own_message)
-        self.token = H.hexdigest()
-
-        return self.token
-
-    def confirm_exchange(self, peer_token):
-        """
-                In the Confirm Exchange, both sides confirm that they derived the
-                same secret, and therefore, are in possession of the same password.
-        """
-        peer_message = '{}{}{}{}{}{}'.format(self.k , self.peer_scalar , self.scalar , self.peer_element[0] , self.element[0] , self.peer_mac).encode()
-        H = hashlib.sha256()
-        H.update(peer_message)
-        self.peer_token_computed = H.hexdigest()
-
-        logger.info('[{}] Computed Token from Peer={}'.format(self.name, self.peer_token_computed))
-        logger.info('[{}] Received Token from Peer={}'.format(self.name, peer_token))
-
-        # Pairwise Master Key” (PMK)
-        # compute PMK = H(k | scal(AP1) + scal(AP2) mod q)
-        pmk_message = '{}{}'.format(self.k, (self.scalar + self.peer_scalar) % self.q).encode()
-        #H = hashlib.sha256()
-        #H.update(pmk_message)
-        self.PMK = hashlib.sha256(pmk_message).digest()
-
-        logger.info('[{}] Pairwise Master Key(PMK)={}'.format(self.name, self.PMK))
-        return self.PMK
-
-    def key_derivation_function(self, n, base, seed):
-        """
-        B.5.1 Per-Message Secret Number Generation Using Extra Random Bits
-
-        Key derivation function from Section B.5.1 of [FIPS186-4]
-
-        The key derivation function, KDF, is used to produce a
-        bitstream whose length is equal to the length of the prime from the
-        group's domain parameter set plus the constant sixty-four (64) to
-        derive a temporary value, and the temporary value is modularly
-        reduced to produce a seed.
-        """
-        combined_seed = '{}{}'.format(base, seed).encode()
-
-        # base and seed concatenated are the input to the RGB
-        random.seed(combined_seed)
-
-        # Obtain a string of N+64 returned_bits from an RBG with a security strength of
-        # requested_security_strength or more.
-
-        randbits = random.getrandbits(n)
-        binary_repr = format(randbits, '0{}b'.format(n))
-
-        assert len(binary_repr) == n
-
-        logger.debug('Rand={}'.format(binary_repr))
-
-        # Convert returned_bits to the non-negative integer c (see Appendix C.2.1).
-        C = 0
-        for i in range(n):
-            if int(binary_repr[i]) == 1:
-                C += pow(2, n-i)
-
-        logger.debug('C={}'.format(C))
-
-        #k = (C % (n - 1)) + 1
-
-        k = C
-
-        logger.debug('k={}'.format(k))
-
-        return k
-
-    def compute_hashed_password(self, counter):
-        maxm = max(self.mac_address, self.other_mac)
-        minm = min(self.mac_address, self.other_mac)
-        message = '{}{}{}{}'.format(maxm, minm, self.password, counter).encode()
-        logger.debug('Message to hash is: {}'.format(message))
-        H = hashlib.sha256()
-        H.update(message)
-        digest = H.digest()
-        return digest
-
-
+            UX, UZ = xADD(UX, UZ, VX, VZ, xQ)
+            VX, VZ, WX, WZ = xDBLADD(VX, VZ, WX, WZ, xPQ, A24)  
+            
+    return WX, WZ       #cost:9nM+6nS+(14n+3)a
+    
+
+#####################################################################   
+    
+#calculate 4-isogenies
+def get_4_isog(X4, Z4):
+    #input: projective point of order four (X4:Z4)
+    #output: 4-isog curve with projective coefficient A/C and
+    #        5 coefficients for evaluating
+    
+    coeff0 = X4 + Z4
+    coeff3 = X4**2
+    coeff4 = Z4**2
+    coeff0 = coeff0**2
+    coeff1 = coeff3 + coeff4
+    coeff2 = coeff3 - coeff4
+    coeff3 = coeff3**2
+    coeff4 = coeff4**2
+    A = coeff3 + coeff3
+    coeff0 = coeff0 - coeff1
+    A = A - coeff4
+    C = coeff4
+    A = A + A
+    
+    return A, C, [coeff0, coeff1, coeff2, coeff3, coeff4]     #cost:5S+7a
+
+
+######################################################################
+
+
+#evaluate 4-isogenies: given coefficients from get_4_isog, evaluate at point in domain
+def eval_4_isog(coeff, X, Z):
+    #input: coefficients from get_4_isog
+    #       projective point P=(X:Z)
+    #output: projective point phi(P)=(X:Z) (overwritten since they replace inputs)
+    
+    X = coeff[0] * X
+    t0 = coeff[1] * Z
+    X = X - t0
+    Z = coeff[2] * Z
+    t0 = X - Z
+    Z = X * Z
+    t0 = t0**2
+    Z = Z + Z
+    Z = Z + Z
+    X = t0 + Z
+    Z = t0 * Z
+    Z = coeff[4] * Z
+    t0 = t0 * coeff[4]
+    t1 = X * coeff[3]
+    t0 = t0 - t1
+    X = X * t0
+    
+    return X, Z              #cost:9M+1S+6a
+
+
+######################################################################
+
+#first 4-isogenie is different
+def first_4_isog(X4, Z4, A):
+    #input: projective point (X4:Z4) and affine curve constant A (start parameter is affine)
+    #output: projective point (X:Z) in the codomain
+    #        isogenous curve constant A/C      (inputs overwritten)
+    
+    t0 = X4**2
+    X = Z4**2
+    Z = X4 * Z4
+    X4 = A * Z
+    Z = Z + Z
+    Z4 = Z - X4
+    t0 = t0 + X
+    X = t0 + Z
+    Z = t0 - Z
+    X4 = X4 + t0
+    X = X * X4
+    Z = Z4 * Z
+    C = Complex(A.re - 2,A.im)
+    An = Complex(0)
+    An.re = A.re + 6
+    An.re = An.re + An.re
+    An.im = A.im + A.im
+    An = Complex(An.re , An.im)
+    
+    return X, Z, An, C      #cost: 4M+2S+9a
+    
+    
+####################################################################     
+
+#compute 3-isogenies
+def get_3_isog(X3, Z3):
+    #input: projective point (X3:Z3) of order 3
+    #ouput: coefficient A/C of 3-isog curve. no other coeff needed
+    
+    t0 = X3**2
+    t1 = t0 + t0
+    t0 = t0 + t1
+    t1 = Z3**2
+    A = t1**2
+    t1 = t1 + t1
+    C = t1 + t1
+    t1 = t0 - t1
+    t1 = t1 * t0
+    A = A - t1
+    A = A - t1
+    A = A - t1
+    t1 = X3 * Z3
+    C = C * t1
+    
+    return A, C             #cost: 3M+3S+8a
+    
+
+####################################################################
+
+#evaluate 3-isogenies
+def eval_3_isog(X3, Z3, X, Z):
+    #input: projective point (X3:Z3) of order 3
+    #       projective x coordinate x(P)=X/Z
+    #output: projective x-coordinate of phi(X:Z)
+    t0 = X3 * X
+    t1 = Z3 * X
+    t2 = Z3 * Z
+    t0 = t0 - t2
+    t2 = Z * X3
+    t1 = t1 - t2
+    t0 = t0**2
+    t1 = t1**2
+    X = X * t0
+    Z = Z * t1
+    
+    return X, Z              #cost: 6M+2S+2a
+    
+
+######################################################################
+
+
+#with affine x-coordinate of P, return projective x-coordinates of Q-P where 
+#Q=tau(P) is image of the distortion map
+
+def distort_and_diff(xP):
+    #input: affine x-coordinate xP
+    #output: point (x(Q-P),z(Q-P)) with Q=tau(P)
+    
+    XD = (xP**2)%p
+    XD = XD + 1
+    XD = Complex(0, XD)
+    ZD = (xP + xP)%p
+    ZD = Complex(ZD)
+    
+    return XD, ZD
+    
+    
+######################################################################
+
+#compute inverses of 3 elements
+def inv_3_way(z1, z2, z3):
+    #input: 3 values z1, z2, z3
+    #output: their inverses, inputs overwritten     
+    
+    t0 = z1 * z2
+    t1 = t0 * z3
+    t1 = inv(t1)
+    t2 = z3 * t1
+    t3 = t2 * z2
+    z2 = t2 * z1
+    z3 = t0 * t1
+    z1 = t3
+    
+    return z1, z2, z3         #cost: 6M+1I
+
+
+#######################################################################
+
+#calculate A from x-coordinates of P, Q, R, such that R=Q-P is on the
+#montgomery-curve E_A: y^2=x^3+A*x^2+x
+def get_A(xP, xQ, xR):
+    #input: x-coordinates xP, xQ, xR
+    #output: coefficient A
+    
+    t1 = xP + xQ
+    t0 = xP * xQ
+    A = xR * t1
+    A = A + t0
+    t0 = t0 * xR
+    A = A - Complex(1)
+    t0 = t0 + t0
+    t1 = t1 + xR
+    t0 = t0 + t0
+    A = A**2
+    t0 = inv(t0)
+    A = A * t0
+    A = A - t1
+
+    return A                 #cost: 4M+1S+7a+1I
+##########################################################################
+
+#caluclate the inverse of an element
+def inv(z):
+    re = z.re
+    im = z.im
+    den = re**2
+    t0 = im**2
+    den = den + t0
+    den = int(den)
+    den = pow(den, p-2, p)
+    re = re * den
+    im = im * den
+    z = Complex(re, -im)
+    
+    return z
+
+
+######################################################################
+
+
+def keygen_Bob(SK_Bob, params, splits, MAX):
+    #input: secret random number in (1,oB-1)
+    #       public parameters [XPA, XPB, YPB]
+    #output: public key [phi_B(x(PA)),phi_B(x(QA)),phi_B(x(QA-PA))]
+    
+    A, C = Complex(0), Complex(1)  #starting montgomery curve
+    phiPX = params[0]   #Bob's starting points -> public key
+    phiPZ = Complex(1)
+    phiQX = Complex(-phiPX)
+    phiQZ = Complex(1)
+    
+    phiDX, phiDZ = distort_and_diff(phiPX)   #(phiDX:phiDZ)=x(Q-P) 
+    phiPX = Complex(phiPX)
+    
+    #compute the point x(R)=(RX:RZ) via secret_pt, R=P+[SK_Alice]Q
+    RX0, RX1, RZ = secret_pt(params[1], params[2], SK_Bob, 'Bob')
+    RX = Complex(RX0, RX1)
+    RZ = Complex(RZ)
+    
+    #counters
+    iso, mul = 0, 0
+    
+    pts = []
+    index = 0
+    
+    #Bob's main loop
+    for row in range(1, MAX):
+        
+        #multiply (RX:RZ) until it has order 3. store intermediate pts
+        while index < (MAX - row):
+            pts.append([RX, RZ, index])
+            m = splits[MAX-index-row]
+            RX, RZ = xTPLe(RX, RZ, A, C, m)
+            mul = mul + m
+            index = index + m
+        
+        #compute isogeny    
+        A, C = get_3_isog(RX, RZ)
+        
+        #evaluate 3-isogeny at every point in pts
+        for i in range(0, len(pts)):
+            pts[i][0], pts[i][1] = eval_3_isog(RX, RZ, pts[i][0], pts[i][1])
+            iso = iso + 1
+            
+        #evaluate 3-isogeny at Alice's points       
+        phiPX, phiPZ = eval_3_isog(RX, RZ, phiPX, phiPZ) #P=phi(P)
+        phiQX, phiQZ = eval_3_isog(RX, RZ, phiQX, phiQZ) #Q=phi(Q)
+        phiDX, phiDZ = eval_3_isog(RX, RZ, phiDX, phiDZ) #D=phi(D)
+        iso = iso + 3
+        
+        #R becomes last entry of pts, last entry is removed from pts
+        RX = pts[len(pts)-1][0]
+        RZ = pts[len(pts)-1][1]
+        index = pts[len(pts)-1][2]
+        del pts[-1]
+    
+    #compute last isogeny
+    A, C = get_3_isog(RX, RZ)
+    phiPX, phiPZ = eval_3_isog(RX, RZ, phiPX, phiPZ) #P=phi(P)
+    phiQX, phiQZ = eval_3_isog(RX, RZ, phiQX, phiQZ) #Q=phi(Q)
+    phiDX, phiDZ = eval_3_isog(RX, RZ, phiDX, phiDZ) #D=phi(D)
+    iso = iso + 3
+    
+    #compute affine x-coordinates
+    phiPZ, phiQZ, phiDZ = inv_3_way(phiPZ, phiQZ, phiDZ)
+    phiPX = phiPX * phiPZ
+    phiQX = phiQX * phiQZ
+    phiDX = phiDX * phiDZ   
+    
+    #Bob's public key, values in Fp2
+    PK_Bob = [phiPX, phiQX, phiDX]
+    
+    msg="Bob's keygen needs "+str(mul)+" multiplications by 3 and "+str(iso)+" isogenies"
+    print(msg)
+    print('')
+    keysize = len(binary(phiPX.re)) + len(binary(phiPX.im)) + len(binary(phiQX.re)) + len(binary(phiQX.im))+ len(binary(phiDX.re)) + len(binary(phiDX.im))
+    msg="Keysize of Bob's public key: " + str(keysize) + " bits"
+    print(msg)
+    
+    return PK_Bob
+    
+
+######################################################################
+
+def shared_secret_Bob(SK_Bob, PK_Alice, splits, MAX):
+    #input: Bob's secret key SK_Alice
+    #       Alices's public key
+    #output: Bob's shared secret: j-invariant of E_BA
+    
+    A = get_A(PK_Alice[0], PK_Alice[1], PK_Alice[2])
+    C = Complex(1)     #start on Alice's curve
+    
+    #compute R=phi_A(xPB)+SK_Bob*phi_A(xQB)
+    RX, RZ = LADDER_3_pt(SK_Bob, PK_Alice[0], PK_Alice[1], PK_Alice[2], A, 'Bob')
+    iso, mul = 0, 0  #counters
+    
+    pts = []
+    index = 0
+    
+    #Bob's main loop
+    for row in range(1, MAX):
+        
+        #multiply (RX:RZ) until it has order 3. store intermediate pts
+        while index < (MAX - row):
+            pts.append([RX, RZ, index])
+            m = splits[MAX-index-row]
+            RX, RZ = xTPLe(RX, RZ, A, C, m)
+            mul = mul + m
+            index = index + m
+        
+        #compute isogeny    
+        A, C = get_3_isog(RX, RZ)
+        
+        #evaluate 3-isogeny at every point in pts
+        for i in range(0, len(pts)):
+            pts[i][0], pts[i][1] = eval_3_isog(RX, RZ, pts[i][0], pts[i][1])
+            iso = iso + 1
+            
+        #R becomes last entry of pts, last entry is removed from pts
+        RX = pts[len(pts)-1][0]
+        RZ = pts[len(pts)-1][1]
+        index = pts[len(pts)-1][2]
+        del pts[-1]
+    
+    #compute last isogeny
+    A, C = get_3_isog(RX, RZ)
+    
+    secret_Bob = j_inv(A, C)    
+    
+    msg="Bob's secret needs "+str(mul)+" multiplications by 3 and "+str(iso)+" isogenies"
+    print(msg)
+    
+    return secret_Bob   
+
+######################################################################
+
+#parameters defining prime p=lA^eA*lB^e_B*f-1
+lA=2
+lB=3
+eA=372
+eB=239
+#eA=15
+#eB=8
+f=1
+
+binary = lambda n: n>0 and [n&1]+binary(n>>1) or []
+
+eAbits = len(binary(lA**eA))
+eBbits = len(binary(lB**eB))
+
+#defining p (must be prime!)
+p=(lA**eA)*(lB**eB)*f-1   
+
+#inverse of 4, needed for 3-pt-ladder
+inv4 = inv(Complex(4))
+    
+#values for eA=372, eB=239
+XPA = 5784307033157574162391672474522522983832304511218905707704962058799572462719474192769980361922537187309960524475241186527300549088533941865412874661143122262830946833377212881592965099601886901183961091839303261748866970694633
+YPA = 5528941793184617364511452300962695084942165460078897881580666552736555418273496645894674314774001072353816966764689493098122556662755842001969781687909521301233517912821073526079191975713749455487083964491867894271185073160661
+XPB = 4359917396849101231053336763700300892915096700013704210194781457801412731643988367389870886884336453245156775454336249199185654250159051929975600857047173121187832546031604804277991148436536445770452624367894371450077315674371
+YPB = 106866937607440797536385002617766720826944674650271400721039514250889186719923133049487966730514682296643039694531052672873754128006844434636819566554364257913332237123293860767683395958817983684370065598726191088239028762772
+
+#values for eA=8, eB=5
+#XPA = 4437
+#YPA = 55467
+#XPB = 24048
+#YPB = 57850
+
+#values for eA=13, eB=7
+#XPA = 4698102
+#YPA = 1371375
+#XPB = 1258275
+#YPB = 10923545
+
+#values for eA=15, eB=8
+#XPA = 144036251
+#YPA = 40988612
+#XPB = 4982149
+#YPB = 74338728
+
+# params_Alice = [XPB, XPA, YPA]
+params_Bob = [XPA, XPB, YPB]
+
+#################################################################
+
+splits_Bob = [0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 6, 7, 8, 8, 8, 8, 9, 9, 9, 9, 9, 10,\
+12, 12, 12, 12, 12, 12, 13, 14, 14, 15, 16, 16, 16, 16, 16, 17, 16, 16, 17, 19,\
+19, 20, 21, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 24, 24, 25, 27, 27, 28, 28,\
+29, 28, 29, 28, 28, 28, 30, 28, 28, 28, 29, 30, 33, 33, 33, 33, 34, 35, 37, 37,\
+37, 37, 38, 38, 37, 38, 38, 38, 38, 38, 39, 43, 38, 38, 38, 38, 43, 40, 41, 42,\
+43, 48, 45, 46, 47, 47, 48, 49, 49, 49, 50, 51, 50, 49, 49, 49, 49, 51, 49, 53,\
+50, 51, 50, 51, 51, 51, 52, 55, 55, 55, 56, 56, 56, 56, 56, 58, 58, 61, 61, 61,\
+63, 63, 63, 64, 65, 65, 65, 65, 66, 66, 65, 65, 66, 66, 66, 66, 66, 66, 66, 71,\
+66, 73, 66, 66, 71, 66, 73, 66, 66, 71, 66, 73, 68, 68, 71, 71, 73, 73, 73, 75,\
+75, 78, 78, 78, 80, 80, 80, 81, 81, 82, 83, 84, 85, 86, 86, 86, 86, 86, 87, 86,\
+88, 86, 86, 86, 86, 88, 86, 88, 86, 86, 86, 88, 88, 86, 86, 86, 93, 90, 90, 92,\
+92, 92, 93, 93, 93, 93, 93, 97, 97, 97, 97, 97, 97 ]
+
+MAX_Bob = 239
+
+#######################################################################
+
+#Decrypts received secret & nbit keys
 def decrypting(key, filename):
     chunksize = 64 * 1024
     outputFile = filename.split('.hacklab')[0]
@@ -546,147 +929,119 @@ def decrypting(key, filename):
     return outputFile
 
 def handshake():
-    #Own mac address
-    own_mac = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
+        logger.info('Starting Key Exchange...\n')
 
-    #Encode MAC address with BER
-    own_mac_BER = asn1_file.encode('DataMac', {'data': own_mac})
-    print (own_mac)
-    sta = Peer('abc1238', own_mac, 'STA')
+        print()
+        logger.info('Key Gen found. Key exchange begins...\n')
 
-    logger.info('Starting hunting and pecking to derive PE...\n')
+        n_Bob= randint(0,lB**eB)
+        logger.info("Bob's secret key:")
+        logger.info(n_Bob)
+        print('')
 
-    sock.send(own_mac_BER)
-    raw_other_mac = sock.recv(1024)
+        PKB = keygen_Bob(n_Bob, params_Bob, splits_Bob, MAX_Bob)
+        print('')
+        logger.info("Bob's Public Key:")
+        logger.info('%s',(PKB[0]))
+        logger.info('%s',(PKB[1]))
+        logger.info('%s',(PKB[2]))
+        keyreal1 = PKB[0].re
+        keyimag1 = PKB[0].im
+        keyreal2 = PKB[1].re
+        keyimag2 = PKB[1].im
+        keyreal3 = PKB[2].re
+        keyimag3 = PKB[2].im
+        encoded = asn1_file.encode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
 
-    #decode BER and get mac address
-    other_decode_mac = asn1_file.decode('DataMac', raw_other_mac)
-    other_mac = other_decode_mac.get('data')
+        print('')
+        print('')
+        logger.info('Data Sent %s %s %s', PKB[0], PKB[1], PKB[2])
 
-    print ('Received', other_mac)
+        #Sends Bob's encoded public key to Key Gen.
+        sock.sendall(encoded)
+        print()
 
-    sta.initiate(other_mac)
+        logger.info('Receiving Key Gens Public Key...\n')
 
-    print()
-    logger.info('Starting dragonfly commit exchange...\n')
+        #Receives Key Gen's public key.
+        PKA_encoded = sock.recv(2048)
+            
+        PKA_decoded = asn1_file.decode('DataPublicKey', PKA_encoded)
+        #Retrieving Key Gen's public key in INT Form
+        keyreal1A = PKA_decoded.get('keyreal1')
+        keyimag1A = PKA_decoded.get('keyimag1')
+        keyreal2A = PKA_decoded.get('keyreal2')
+        keyimag2A = PKA_decoded.get('keyimag2')
+        keyreal3A = PKA_decoded.get('keyreal3')
+        keyimag3A = PKA_decoded.get('keyimag3')
+     
+            
+        #Forming Key Gen's public key into complex form for calculations
+        phiPX = Complex(keyreal1A, keyimag1A)
+        phiQX = Complex(keyreal2A, keyimag2A)
+        phiDX = Complex(keyreal3A, keyimag3A)
 
-    scalar_sta, element_sta = sta.commit_exchange()
+        PKA = [phiPX, phiQX, phiDX]
 
-    #Send BER encodewd Scalar / element ap to peer
-    scalar_complete = ("\n".join([str(scalar_sta), str(element_sta)]))
-    scalar_element_BER = asn1_file.encode('DataScalarElement',{'data':scalar_complete})
-    sock.sendall(scalar_element_BER)
-    print()
-    print('data send', scalar_complete)
-    logger.info('Computing shared secret...\n')
+        logger.info('Public Key Received: ')
+        logger.info(PKA[0])
+        logger.info(PKA[1])
+        logger.info(PKA[2])
+      
+        print()
+        logger.info('Computing shared secret...\n')
 
+    #Calculates shared secret based off received public key
 
-    #receive BER encoded scalar / element ap
-    scalar_element_ap_BER = sock.recv(1024)
-    scalar_element_ap_decoded = asn1_file.decode('DataScalarElement', scalar_element_ap_BER)
-    scalar_element_ap = scalar_element_ap_decoded.get('data')
+        SKB = shared_secret_Bob(n_Bob, PKA, splits_Bob, MAX_Bob)
+        print('')
+        logger.info("Bob's shared secret:")
+        logger.info(SKB)
+        print('')
+        
+        #Hashing Shared Secret
+        SKB_ComplexToString = secretKeyEncoder().encode(SKB)
+        SKB_StringToBytes = SKB_ComplexToString.encode()
+        #SK = Skeleton Key
+        SK = hashlib.sha256(SKB_StringToBytes).digest()
+        
+        #Open the received secret file from the key generator
+        with open('secret.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
+           print ('File opened...\n')
+           while True:
+               # print ('Receiving data...\n')
+               secret_key_BER = sock.recv(16396, socket.MSG_WAITALL)
+               if (len(secret_key_BER) > 10):
+                   keys_decoded = asn1_file.decode('DataKey', secret_key_BER)
+                   secret_key = keys_decoded.get('key')
+                   nbit_key = keys_decoded.get('nbit')
+               else:
+                   break
+               if not (secret_key or nbit_key):
+                   break
+               s.write(secret_key)
+               t.write(nbit_key)
 
-    # scalar_element_ap = sock.recv(1024).decode()
-    print('scalar element received ', scalar_element_ap)
-    data = scalar_element_ap.split('\n')
-    # print (data[0])
-    # print (data[1])
-    scalar_ap = data[0]
-    element_ap = data[1]
-    print()
-    print ('scalar_ap recv:',scalar_ap)
-    print()
-    print ('element_ap recv:',element_ap)
-    print ()
-    print ()
-    namedtuple_element_ap = eval(element_ap)
-    print (namedtuple_element_ap.y, namedtuple_element_ap.x)
-    print ()
-    print ()
-
-    sta_token = sta.compute_shared_secret(namedtuple_element_ap, int(scalar_ap), other_mac)
-
-    #Encode sta_token to be BER encoded and send to peer
-    staToken_encoded = asn1_file.encode('DataStaAp',{'data':sta_token})
-    sock.send(staToken_encoded)
-
-    # sock.send(sta_token.encode())
-    print("sta_token", sta_token)
-
-    print()
-    logger.info('Confirm Exchange...\n')
-
-    #Receive BER encoded AP Token and decode it
-    apToken_encoded = sock.recv(1024)
-    apToken_decoded = asn1_file.decode('DataStaAp', apToken_encoded)
-    ap_token = apToken_decoded.get('data')
-
-    print('received ap token', ap_token)
-
-    PMK_Key = sta.confirm_exchange(ap_token)
-    #print (PMK_Key)
-
-    #encrypted = sock.recv(1024).decode()
-    #print ("Encrypted ciphertext: ", encrypted)
-
-    # Decrypt using PMK_Key
-    #decrypted = decrypt(encrypted, PMK_Key)
-    #print (decrypted.decode())
-
-    # Open the received secret file from the key generator
-    with open('secret.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
-        print ('File opened...\n')
-        while True:
-            # print ('Receiving data...\n')
-            secret_key_BER = sock.recv(16396, socket.MSG_WAITALL)
-            if (len(secret_key_BER) > 10):
-                keys_decoded = asn1_file.decode('DataKey', secret_key_BER)
-                secret_key = keys_decoded.get('key')
-                nbit_key = keys_decoded.get('nbit')
-            else:
-                break
-            if not (secret_key or nbit_key):
-                break
-            s.write(secret_key)
-            t.write(nbit_key)
-
-        s.close()
-        t.close()
+           s.close()
+           t.close()
 
         print ('Successfully got the files\n')
 
-    print ('Encrypted secret file size: ', os.path.getsize('secret.key.hacklab'))
-    print ('Encrypted nbit file size: ', os.path.getsize('nbit.key.hacklab'))
+        print ('Encrypted secret file size: ', os.path.getsize('secret.key.hacklab'))
+        print ('Encrypted nbit file size: ', os.path.getsize('nbit.key.hacklab'))
 
-    print ('Decrypting the files...\n')
+        print ('Decrypting the files...\n')
 
-    decrypted_secret_key = decrypting(PMK_Key, 'secret.key.hacklab')
-    print('Acquired original secret key file size: ', os.path.getsize(decrypted_secret_key))
-    os.system("md5sum secret.key")
+        decrypted_secret_key = decrypting(SK, 'secret.key.hacklab')
+        print('Acquired original secret key file size: ', os.path.getsize(decrypted_secret_key))
+        os.system("md5sum secret.key")
 
-    decrypted_nbit_key = decrypting(PMK_Key, 'nbit.key.hacklab')
-    print('Acquired original nbit key file size: ', os.path.getsize(decrypted_nbit_key))
-    os.system("md5sum nbit.key")
+        decrypted_nbit_key = decrypting(SK, 'nbit.key.hacklab')
+        print('Acquired original nbit key file size: ', os.path.getsize(decrypted_nbit_key))
+        os.system("md5sum nbit.key")
 
-def tests():
-    """
-    See Understanding Cryptography ECC Section.
-    """
-    a, b, p = 2, 2, 17
-    curve = Curve(a, b, p)
-
-    P = Point(5, 1)
-    assert curve.double_add_algorithm(19, P) == O
-
-    T = P
-    for i in range(p+1):
-        T = curve.ec_add(T, P)
-
-    assert curve.double_add_algorithm(19, P) == T
-
+#######################################################################
 
 if __name__ == '__main__':
-    #tests()
     handshake()
-
     sock.close()
