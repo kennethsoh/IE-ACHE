@@ -20,12 +20,18 @@ TEST DEFINITIONS ::= BEGIN
         nbit OCTET STRING
     }
 
-    DataScalarElement ::= SEQUENCE {
-        data    IA5String
+    DataPublicKey ::= SEQUENCE {
+        keyreal1    INTEGER,
+        keyimag1    INTEGER,
+        keyreal2    INTEGER,
+        keyimag2    INTEGER,
+        keyreal3    INTEGER,
+        keyimag3    INTEGER
     }
 
-    DataStaAp ::= SEQUENCE {
-        data    IA5String
+    DataSharedKey ::= SEQUENCE {
+        sharedKeyReal    INTEGER,
+        sharedKeyImag    INTEGER
     }
 
     DataFsize ::= SEQUENCE {
