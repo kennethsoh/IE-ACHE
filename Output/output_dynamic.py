@@ -18,6 +18,8 @@ from optparse import *
 import sys
 from ipaddress import ip_address, IPv6Address
 import select
+import json
+from json import JSONEncoder
 
 # THE PURPOSE OF THIS FILE IS TO HANDLE USER INPUT AND REQUEST FOR SUPERSINGULAR ISOGENY KEY EXCHANGE TO BE COMPLETED
 
