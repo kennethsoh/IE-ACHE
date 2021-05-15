@@ -1006,41 +1006,41 @@ def handshake():
         SK = hashlib.sha256(SKB_StringToBytes).digest()
         
         print ("Getting keys...\n")
-	print ("Printing cloud key...\n")
-	cloud_key = "cloud.key"
-	print("Printing nbit key...\n")
-	nbit_key = "nbit.key"
+        print ("Printing cloud key...\n")
+        cloud_key = "cloud.key"
+        print("Printing nbit key...\n")
+        nbit_key = "nbit.key"
 	
 	# encrypt cloudkey
-	cloudkey = encrypting(SK, cloud_key)
-	print("This file", cloudkey, "is encrypted secret key\n")
+        cloudkey = encrypting(SK, cloud_key)
+        print("This file", cloudkey, "is encrypted secret key\n")
 	#encrypt nbitkey
-	nbitkey = encrypting(SK, nbit_key)
-	print("This file", nbitkey, "is encrypted nbit key\n")
+        nbitkey = encrypting(SK, nbit_key)
+        print("This file", nbitkey, "is encrypted nbit key\n")
 	
 	#Open the cloudkey file and read its content
-	s = open(cloudkey, "rb")
-	keycontent = s.read(8192)
+        s = open(cloudkey, "rb")
+        keycontent = s.read(8192)
 	
 	#open the nbitkey file and read its content
-	t = open(nbitkey, "rb")
-	nbitkeycontent = t.read(8192)
+        t = open(nbitkey, "rb")
+        nbitkeycontent = t.read(8192)
 
 	
 	#Encode key in BER format
-	encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
+        encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
 
 	
 	# Send the BER encoded file to the peer
-	while (keycontent and nbitkeycontent):
-		self.connection.sendall(encoded_keys)
-		keycontent = s.read(8192)
-		nbitkeycontent = t.read(8192)
-		encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
-	s.close()
-	t.close()
+        while (keycontent and nbitkeycontent):
+            self.connection.sendall(encoded_keys)
+            keycontent = s.read(8192)
+            nbitkeycontent = t.read(8192)
+            encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
+        s.close()
+        t.close()
 #######################################################################
 
 if __name__ == '__main__':
-handshake()
-sock.close()
+    handshake()
+    sock.close()
