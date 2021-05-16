@@ -1094,7 +1094,6 @@ def handshake():
             break
         else:
             connection.close()
-            sock.close()
             continue
 
 #######################################################################
