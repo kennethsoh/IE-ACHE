@@ -972,13 +972,13 @@ def handshake():
                 logger.info('Data Sent %s %s %s', PKA[0], PKA[1], PKA[2])
 
                 #Sends Alice's encoded Public key to Bob
-                self.connection.sendall(encoded)
+                connection.sendall(encoded)
                 print()
 
                 logger.info('Receiving Clients Public Key...\n')
 
                 #Received Bob's encoded Public Key and decodes it
-                PKB_encoded = self.connection.recv(2048)
+                PKB_encoded = connection.recv(2048)
                 PKB_decoded = asn1_file.decode('DataPublicKey', PKB_encoded)
                 #Retrieving Bob's public key in INT Form
                 keyreal1B = PKB_decoded.get('keyreal1')
