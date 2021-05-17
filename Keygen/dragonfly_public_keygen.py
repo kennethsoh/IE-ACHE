@@ -964,6 +964,7 @@ def handshake():
                 keyreal1 = PKA[0].re
                 keyimag1 = PKA[0].im
                 keyreal2 = PKA[1].re
+                keyimag2 = PKA[1].im
                 keyreal3 = PKA[2].re
                 keyimag3 = PKA[2].im
                 encoded = asn1_file.encode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
