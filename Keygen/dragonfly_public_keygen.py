@@ -26,9 +26,6 @@ import json
 from json import JSONEncoder
 pr = cProfile.Profile()
 pr.enable()
-from signal import signal, SIGPIPE, SIG_DFL 
-#Ignore SIG_PIPE and don't throw exceptions on it... (http://docs.python.org/library/signal.html)
-signal(SIGPIPE,SIG_DFL)
 
 #Compile asn1 file for cloud_key
 asn1_file = asn1tools.compile_files('declaration.asn')
@@ -1037,7 +1034,7 @@ def handshake():
 
 				# Send the BER encoded file to the peer
 				while (keycontent and nbitkeycontent):
-				    connection.sendall(encoded_keys)
+				    connection.send(encoded_keys)
 				    keycontent = s.read(8192)
 				    nbitkeycontent = t.read(8192)
 				    encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
