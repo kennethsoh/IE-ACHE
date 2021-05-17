@@ -1074,7 +1074,7 @@ def handshake():
     position = 1
 
     # Generate keys once only  
-    # subprocess.call("./keygen")
+    subprocess.call("./keygen")
     
     while True:
         sock.listen()
