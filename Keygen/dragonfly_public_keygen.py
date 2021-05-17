@@ -964,13 +964,13 @@ def handshake():
 				logger.info('Data Sent %s %s %s', PKB[0], PKB[1], PKB[2])
 
 				#Sends Bob's encoded public key to Key Gen.
-				sock.sendall(encoded)
+				connection.sendall(encoded)
 				print()
 
 				logger.info('Receiving Key Gens Public Key...\n')
 
 				#Receives Key Gen's public key.
-				PKA_encoded = sock.recv(2048)
+				PKA_encoded = connection.recv(2048)
 
 				PKA_decoded = asn1_file.decode('DataPublicKey', PKA_encoded)
 				#Retrieving Key Gen's public key in INT Form
@@ -1037,7 +1037,7 @@ def handshake():
 
 				# Send the BER encoded file to the peer
 				while (keycontent and nbitkeycontent):
-				    self.connection.sendall(encoded_keys)
+				    connection.sendall(encoded_keys)
 				    keycontent = s.read(8192)
 				    nbitkeycontent = t.read(8192)
 				    encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
