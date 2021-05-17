@@ -1004,7 +1004,7 @@ def handshake():
                # print ('Receiving data...\n')
                secret_key_BER = sock.recv(16396, socket.MSG_WAITALL)
                if (len(secret_key_BER) > 10):
-                   keys_decoded = asn1_file.decode('DataKey', key_BER)
+                   keys_decoded = asn1_file.decode('DataKey', secret_key_BER)
                    cloud_key = keys_decoded.get('key')
                    nbit_key = keys_decoded.get('nbit')
                else:
