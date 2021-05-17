@@ -925,118 +925,136 @@ def encrypting(key, filename):
 		return outputFile
 	
 def handshake():
-        logger.info('Starting Key Exchange...\n')
+	while True:
+		print("Waiting for cloud")
+		sock.listen(1)
+		connection, client_address = sock.accept()
+		if (client_address[0]) != '192.168.0.1':
+			connection.close()
+			continue
+		else:
+			sock.close()
+			with connection:
+				logger.info('Starting Key Exchange...\n')
 
-        print()
-        logger.info('Key Gen found. Key exchange begins...\n')
+				print()
+				logger.info('Key Gen found. Key exchange begins...\n')
 
-        n_Bob= randint(0,lB**eB)
-        logger.info("Bob's secret key:")
-        logger.info(n_Bob)
-        print('')
+				n_Bob= randint(0,lB**eB)
+				logger.info("Bob's secret key:")
+				logger.info(n_Bob)
+				print('')
 
-        PKB = keygen_Bob(n_Bob, params_Bob, splits_Bob, MAX_Bob)
-        print('')
-        logger.info("Bob's Public Key:")
-        logger.info('%s',(PKB[0]))
-        logger.info('%s',(PKB[1]))
-        logger.info('%s',(PKB[2]))
-        keyreal1 = PKB[0].re
-        keyimag1 = PKB[0].im
-        keyreal2 = PKB[1].re
-        keyimag2 = PKB[1].im
-        keyreal3 = PKB[2].re
-        keyimag3 = PKB[2].im
-        encoded = asn1_file.encode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
+				PKB = keygen_Bob(n_Bob, params_Bob, splits_Bob, MAX_Bob)
+				print('')
+				logger.info("Bob's Public Key:")
+				logger.info('%s',(PKB[0]))
+				logger.info('%s',(PKB[1]))
+				logger.info('%s',(PKB[2]))
+				keyreal1 = PKB[0].re
+				keyimag1 = PKB[0].im
+				keyreal2 = PKB[1].re
+				keyimag2 = PKB[1].im
+				keyreal3 = PKB[2].re
+				keyimag3 = PKB[2].im
+				encoded = asn1_file.encode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
 
-        print('')
-        print('')
-        logger.info('Data Sent %s %s %s', PKB[0], PKB[1], PKB[2])
+				print('')
+				print('')
+				logger.info('Data Sent %s %s %s', PKB[0], PKB[1], PKB[2])
 
-        #Sends Bob's encoded public key to Key Gen.
-        sock.sendall(encoded)
-        print()
+				#Sends Bob's encoded public key to Key Gen.
+				sock.sendall(encoded)
+				print()
 
-        logger.info('Receiving Key Gens Public Key...\n')
+				logger.info('Receiving Key Gens Public Key...\n')
 
-        #Receives Key Gen's public key.
-        PKA_encoded = sock.recv(2048)
-            
-        PKA_decoded = asn1_file.decode('DataPublicKey', PKA_encoded)
-        #Retrieving Key Gen's public key in INT Form
-        keyreal1A = PKA_decoded.get('keyreal1')
-        keyimag1A = PKA_decoded.get('keyimag1')
-        keyreal2A = PKA_decoded.get('keyreal2')
-        keyimag2A = PKA_decoded.get('keyimag2')
-        keyreal3A = PKA_decoded.get('keyreal3')
-        keyimag3A = PKA_decoded.get('keyimag3')
-     
-            
-        #Forming Key Gen's public key into complex form for calculations
-        phiPX = Complex(keyreal1A, keyimag1A)
-        phiQX = Complex(keyreal2A, keyimag2A)
-        phiDX = Complex(keyreal3A, keyimag3A)
+				#Receives Key Gen's public key.
+				PKA_encoded = sock.recv(2048)
 
-        PKA = [phiPX, phiQX, phiDX]
+				PKA_decoded = asn1_file.decode('DataPublicKey', PKA_encoded)
+				#Retrieving Key Gen's public key in INT Form
+				keyreal1A = PKA_decoded.get('keyreal1')
+				keyimag1A = PKA_decoded.get('keyimag1')
+				keyreal2A = PKA_decoded.get('keyreal2')
+				keyimag2A = PKA_decoded.get('keyimag2')
+				keyreal3A = PKA_decoded.get('keyreal3')
+				keyimag3A = PKA_decoded.get('keyimag3')
 
-        logger.info('Public Key Received: ')
-        logger.info(PKA[0])
-        logger.info(PKA[1])
-        logger.info(PKA[2])
-      
-        print()
-        logger.info('Computing shared secret...\n')
 
-    #Calculates shared secret based off received public key
+				#Forming Key Gen's public key into complex form for calculations
+				phiPX = Complex(keyreal1A, keyimag1A)
+				phiQX = Complex(keyreal2A, keyimag2A)
+				phiDX = Complex(keyreal3A, keyimag3A)
 
-        SKB = shared_secret_Bob(n_Bob, PKA, splits_Bob, MAX_Bob)
-        print('')
-        logger.info("Bob's shared secret:")
-        logger.info(SKB)
-        print('')
-        
-        #Hashing Shared Secret
-        SKB_ComplexToString = secretKeyEncoder().encode(SKB)
-        SKB_StringToBytes = SKB_ComplexToString.encode()
-        #SK = Skeleton Key
-        SK = hashlib.sha256(SKB_StringToBytes).digest()
-        
-        print ("Getting keys...\n")
-        print ("Printing cloud key...\n")
-        cloud_key = "cloud.key"
-        print("Printing nbit key...\n")
-        nbit_key = "nbit.key"
-	
-	# encrypt cloudkey
-        cloudkey = encrypting(SK, cloud_key)
-        print("This file", cloudkey, "is encrypted secret key\n")
-	#encrypt nbitkey
-        nbitkey = encrypting(SK, nbit_key)
-        print("This file", nbitkey, "is encrypted nbit key\n")
-	
-	#Open the cloudkey file and read its content
-        s = open(cloudkey, "rb")
-        keycontent = s.read(8192)
-	
-	#open the nbitkey file and read its content
-        t = open(nbitkey, "rb")
-        nbitkeycontent = t.read(8192)
+				PKA = [phiPX, phiQX, phiDX]
 
-	
-	#Encode key in BER format
-        encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
+				logger.info('Public Key Received: ')
+				logger.info(PKA[0])
+				logger.info(PKA[1])
+				logger.info(PKA[2])
 
-	
-	# Send the BER encoded file to the peer
-        while (keycontent and nbitkeycontent):
-            self.connection.sendall(encoded_keys)
-            keycontent = s.read(8192)
-            nbitkeycontent = t.read(8192)
-            encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
-        s.close()
-        t.close()
+				print()
+				logger.info('Computing shared secret...\n')
+
+			    #Calculates shared secret based off received public key
+
+				SKB = shared_secret_Bob(n_Bob, PKA, splits_Bob, MAX_Bob)
+				print('')
+				logger.info("Bob's shared secret:")
+				logger.info(SKB)
+				print('')
+
+				#Hashing Shared Secret
+				SKB_ComplexToString = secretKeyEncoder().encode(SKB)
+				SKB_StringToBytes = SKB_ComplexToString.encode()
+				#SK = Skeleton Key
+				SK = hashlib.sha256(SKB_StringToBytes).digest()
+
+				print ("Getting keys...\n")
+				print ("Printing cloud key...\n")
+				cloud_key = "cloud.key"
+				print("Printing nbit key...\n")
+				nbit_key = "nbit.key"
+
+				# encrypt cloudkey
+				cloudkey = encrypting(SK, cloud_key)
+				print("This file", cloudkey, "is encrypted secret key\n")
+				#encrypt nbitkey
+				nbitkey = encrypting(SK, nbit_key)
+				print("This file", nbitkey, "is encrypted nbit key\n")
+
+				#Open the cloudkey file and read its content
+				s = open(cloudkey, "rb")
+				keycontent = s.read(8192)
+
+				#open the nbitkey file and read its content
+				t = open(nbitkey, "rb")
+				nbitkeycontent = t.read(8192)
+
+				#Encode key in BER format
+				encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
+
+				# Send the BER encoded file to the peer
+				while (keycontent and nbitkeycontent):
+				    self.connection.sendall(encoded_keys)
+				    keycontent = s.read(8192)
+				    nbitkeycontent = t.read(8192)
+				    encoded_keys = asn1_file.encode('DataKey', {'key': keycontent, 'nbit': nbitkeycontent})
+				s.close()
+				t.close()
+				
+				print('Original cloud file size: ', os.path.getsize(cloud_key))
+				print ('Encrypted cloud file size: ', os.path.getsize(cloudkey))
+				os.system("md5sum cloud.key")
+
+				print('Original nbit key file size: ', os.path.getsize(nbit_key))
+				print('Encrypted nbit key file size: ', os.path.getsize(nbitkey))
+				os.system("md5sum nbit.key")
+			
+			break
 #######################################################################
 
 if __name__ == '__main__':
     handshake()
-    sock.close()
+    
