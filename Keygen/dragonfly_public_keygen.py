@@ -27,7 +27,7 @@ from json import JSONEncoder
 pr = cProfile.Profile()
 pr.enable()
 
-#Compile asn1 file for secret_key
+#Compile asn1 file for cloud_key
 asn1_file = asn1tools.compile_files('declaration.asn')
 
 #create tcp/ip socket
@@ -42,24 +42,15 @@ local_fqdn = socket.getfqdn()
 #get the according ip address
 ip_address = socket.gethostbyname(local_hostname)
 
-server_address = ('192.168.0.3', 4380)
-while True:
-    try:
-        sock.connect(server_address)
-        print("Successfully connected to Keygen")
-        break
-    except ConnectionRefusedError as conn_error:
-        print('A connection error has occured')
-        print(conn_error)
-        print('Attempting to connect to server again...')
-        time.sleep(5)
-    except KeyboardInterrupt:
-        print('Ctrl-C pressed to terminate program')
-        pass
-    except:
-        print('Unexpected error:', sys.exc_info()[0])
+#output hostname, domain name, ip address
+print ("Working on %s (%s) with %s" % (local_hostname, local_fqdn, ip_address))
 
-print ("Connecting to %s (%s) with %s" % (local_hostname, local_fqdn, ip_address))
+#bind socket to port
+server_address = ('192.168.0.3', 4380)
+print ("Starting up on %s port %s" % server_address)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+sock.bind(server_address)
+
 
 logger = logging.getLogger('Key Exchange')
 logger.setLevel(logging.INFO)
@@ -909,25 +900,27 @@ MAX_Bob = 239
 #######################################################################
 
 #Decrypts received secret & nbit keys
-def decrypting(key, filename):
-    chunksize = 64 * 1024
-    outputFile = filename.split('.hacklab')[0]
+def encrypting(key, filename):
+		chunksize = 64*1024
+		outputFile = filename+".hacklab"
+		filesize = str(os.path.getsize(filename)).zfill(16)
+		IV = Random.new().read(16)
 
-    with open(filename, 'rb') as infile:
-        filesize = int(infile.read(16))
-        IV = infile.read(16)
-        decryptor = AES.new(key, AES.MODE_CBC, IV)
+		encryptor = AES.new(key, AES.MODE_CBC, IV)
+		with open(filename, 'rb') as infile:
+			with open(outputFile, 'wb') as outfile:
+				outfile.write(filesize.encode('utf-8'))
+				outfile.write(IV)
+				while True:
+					chunk = infile.read(chunksize)
+					if len(chunk) == 0:
+						break
+					elif len(chunk) % 16 != 0:
+						chunk += b' ' * (16 - (len(chunk) % 16))
+					outfile.write(encryptor.encrypt(chunk))
 
-        with open(outputFile, 'wb') as outfile:
-            while True:
-                chunk = infile.read(chunksize)
-                if len(chunk) == 0:
-                    break
-                outfile.write(decryptor.decrypt(chunk))
-            outfile.truncate(filesize)
-
-    return outputFile
-
+		return outputFile
+	
 def handshake():
         logger.info('Starting Key Exchange...\n')
 
