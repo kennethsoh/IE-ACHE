@@ -33,8 +33,6 @@ local_fqdn = socket.getfqdn()
 
 ####################################################################################
 
-print ("Connecting to %s (%s) with %s" % (local_hostname, local_fqdn, ip_address))
-
 logger = logging.getLogger('Key Exchange')
 logger.setLevel(logging.INFO)
 # create file handler which logs even debug messages
