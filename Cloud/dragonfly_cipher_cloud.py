@@ -31,25 +31,7 @@ local_hostname = socket.gethostname()
 #get fully qualified hostname
 local_fqdn = socket.getfqdn()
 
-#get the according ip address
-ip_address = socket.gethostbyname(local_hostname)
-
-server_address = ('192.168.0.3', 4380)
-while True:
-    try:
-        sock.connect(server_address)
-        print("Successfully connected to Keygen")
-        break
-    except ConnectionRefusedError as conn_error:
-        print('A connection error has occured')
-        print(conn_error)
-        print('Attempting to connect to server again...')
-        time.sleep(5)
-    except KeyboardInterrupt:
-        print('Ctrl-C pressed to terminate program')
-        pass
-    except:
-        print('Unexpected error:', sys.exc_info()[0])
+####################################################################################
 
 print ("Connecting to %s (%s) with %s" % (local_hostname, local_fqdn, ip_address))
 
