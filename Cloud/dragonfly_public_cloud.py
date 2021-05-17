@@ -46,10 +46,10 @@ ip_address = socket.gethostbyname(local_hostname)
 server_address = ('192.168.0.3', 4380)
 while True:
     try:
-        sock.connect(server_address)
-        break
+                sock.connect(server_address)
+                break
     except:
-        print('Unexpected error: ',sys.exc_info()[0])
+                print('Unexpected error: ',sys.exc_info()[0])
         
 print ("Connecting to %s (%s) with %s" % (local_hostname, local_fqdn, ip_address))
 
