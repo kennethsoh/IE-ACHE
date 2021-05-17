@@ -26,6 +26,9 @@ import json
 from json import JSONEncoder
 pr = cProfile.Profile()
 pr.enable()
+from signal import signal, SIGPIPE, SIG_DFL 
+#Ignore SIG_PIPE and don't throw exceptions on it... (http://docs.python.org/library/signal.html)
+signal(SIGPIPE,SIG_DFL)
 
 #Compile asn1 file for cloud_key
 asn1_file = asn1tools.compile_files('declaration.asn')
