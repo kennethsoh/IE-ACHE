@@ -899,7 +899,7 @@ MAX_Bob = 239
 
 #######################################################################
 
-#Decrypts received secret & nbit keys
+#encrypts received secret & nbit keys
 def encrypting(key, filename):
 		chunksize = 64*1024
 		outputFile = filename+".hacklab"
