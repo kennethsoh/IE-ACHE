@@ -1024,7 +1024,7 @@ def handshake():
 
         print ('Decrypting the files...\n')
 
-        decrypted_secret_key = decrypting(SK, 'cloud.key.hacklab')
+        decrypted_cloud_key = decrypting(SK, 'cloud.key.hacklab')
         print('Acquired original secret key file size: ', os.path.getsize(decrypted_cloud_key))
         os.system("md5sum cloud.key")
 
