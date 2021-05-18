@@ -904,7 +904,7 @@ def handshake():
         logger.info('Starting Key Exchange...\n')
 
         print()
-        logger.info('Key Gen found. Key exchange begins...\n')
+        logger.info('Output found. Key exchange begins...\n')
 
         n_Bob= randint(0,lB**eB)
         logger.info("Bob's secret key:")
@@ -930,13 +930,13 @@ def handshake():
         logger.info('Data Sent %s %s %s', PKB[0], PKB[1], PKB[2])
 
         #Sends Bob's encoded public key to Key Gen.
-        sock.sendall(encoded)
+        sock_output.sendall(encoded)
         print()
 
         logger.info('Receiving Key Gens Public Key...\n')
 
         #Receives Key Gen's public key.
-        PKA_encoded = sock.recv(2048)
+        PKA_encoded = sock_output.recv(2048)
             
         PKA_decoded = asn1_file.decode('DataPublicKey', PKA_encoded)
         #Retrieving Key Gen's public key in INT Form
