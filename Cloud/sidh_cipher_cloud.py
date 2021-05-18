@@ -1,0 +1,1842 @@
+import time
+import hashlib
+import random
+import logging
+import socket
+import re, uuid
+import base64
+import os
+import subprocess
+from collections import namedtuple
+from Cryptodome.Cipher import AES
+from Cryptodome import Random
+import asn1tools
+import sys
+import cProfile, pstats, io
+from random import randint
+import json
+from json import JSONEncoder
+pr = cProfile.Profile()
+pr.enable()
+
+#Compile asn1 file for secret_key
+asn1_file = asn1tools.compile_files('declaration.asn')
+
+#create tcp/ip socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+#retrieve local hostname
+local_hostname = socket.gethostname()
+
+#get fully qualified hostname
+local_fqdn = socket.getfqdn()
+
+####################################################################################
+
+logger = logging.getLogger('Key Exchange')
+logger.setLevel(logging.INFO)
+# create file handler which logs even debug messages
+fh = logging.FileHandler('keyexchange.log')
+fh.setLevel(logging.DEBUG)
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+# create formatter and add it to the handlers
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+fh.setFormatter(formatter)
+# add the handlers to logger
+logger.addHandler(ch)
+logger.addHandler(fh)
+
+
+class Complex(object):
+    def __init__(self, real, imag=0):
+        self.re = int(real)
+        self.im = int(imag)
+        
+    def __add__(self, other):
+        return Complex(self.re + other.re, self.im + other.im)
+
+    def __sub__(self, other):
+        return Complex(self.re - other.re, self.im - other.im)
+
+    def __mul__(self, other):
+        ab0=self.re*other.re
+        ab1=self.im*other.im
+        c=(self.re+self.im)*(other.re+other.im)
+        return Complex((ab0-ab1)%p, (c-ab0-ab1)%p)
+
+
+    def __neg__(self):  
+        return Complex(-self.re, -self.im)
+
+    def __eq__(self, other):
+        return self.re == other.re and self.im == other.im
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __str__(self):
+        return '(%u, %u)' % (self.re %p, self.im %p)
+
+    def __repr__(self):
+        return 'Complex' + str(self.re ,self.im)
+
+    def __pow__(self, power): #only squares required
+        return Complex(((self.re+self.im)*(self.re-self.im))%p, (2*self.im*self.re)%p)
+        
+    def __mod__(self, p):
+        return Complex(self.re % p, self.im % p)    
+
+class secretKeyEncoder(JSONEncoder):
+        def default(self, o):
+            return o.__dict__
+####################################################################
+
+def j_inv(A, C):  
+    #input: parameters (A:C) of projective curve
+    #output: j-invariant
+    jinv = A**2  
+    t1 = C**2
+    t0 = t1 + t1
+    t0 = jinv - t0
+    t0 = t0 - t1
+    jinv = t0 - t1
+    t1 = t1**2
+    jinv = jinv * t1
+    t0 = t0 + t0
+    t0 = t0 + t0
+    t1 = t0**2
+    t0 = t0 * t1
+    t0 = t0 + t0
+    t0 = t0 + t0
+    jinv = inv(jinv)
+    jinv = t0 * jinv
+
+    return jinv   #cost: 3M+4S+8a+1I
+
+
+########################################################### 
+
+
+#function for Montgomery differential addition
+def xADD(XP, ZP, XQ, ZQ, xPQ):
+    #input: projective coordinates xP=XP/ZP and xQ=XQ/ZQ
+    #       affine difference x(P-Q)=xPQ
+    #output: projective coordinates x(Q+P)=XQP/XZP
+    t0 = XP + ZP   
+    t1 = XP - ZP
+    XP = XQ - ZQ
+    ZP = XQ + ZQ
+    t0 = (XP * t0)%p
+    t1 = (ZP * t1)%p
+    ZP = t0 - t1
+    XP = t0 + t1
+    ZP = (ZP**2)%p
+    XQP = (XP**2)%p
+    ZQP = (xPQ * ZP)%p
+    
+    return XQP, ZQP    #cost: 3M+2S+6a  
+        
+        
+##############################################################
+
+
+#function for Montgomery doubling with projective curve constant
+def xDBL(X, Z, A24, C24):
+    #input: projective coordinates xP=X/Z
+    #       curve constant A24/C24 = (A/C+2)/4
+    #output: projective coordinates x(2P)=X2/Z2
+    t0 = X - Z      #code from msr
+    t1 = X + Z
+    t0 = t0**2
+    t1 = t1**2 
+    Z2 = C24 * t0
+    X2 = Z2 * t1
+    t1 = t1 - t0
+    t0 = A24 * t1
+    Z2 = Z2 + t0
+    Z2 = Z2 * t1
+    
+    return X2, Z2   #cost: 4M+2S+4a
+
+########################################################
+
+#Edwards-version of xDBL    
+def edDBL(Y,Z,AE,DE):
+    t0=Y**2
+    t1=Z**2
+    t2=t0+t1
+    t2=t2**2
+    t0=t0**2
+    t1=t1**2
+    t2=t2-t0
+    t2=t2-t1
+    Y2=t2*AE  #Y2=2a*Y^2Z^2
+    t2=t2*DE  #t2=2d*Y^2Z^2
+    t0=t0*DE  #t0=d*Y^4
+    t1=t1*AE  #t1=a*Z^4
+    t0=t0+t1  #t0=d*Y^4+a*Z^4
+    Z2=t0-t2  #
+    Y2=Y2-t0  #cost: 5S+4M
+
+    return Y2,Z2
+
+######################################################
+
+#Edwards-version of xDBLe   
+def edDBLe(XP,ZP,A,C,e):
+    
+    C2=C+C
+    AE=A+C2
+    DE=A-C2
+    
+    YeP = XP-ZP
+    ZeP = ZP+XP
+    
+    for i in range(0,e):
+        YeP, ZeP = edDBL(YeP, ZeP, AE, DE)
+    
+    XeP=YeP+ZeP
+    ZeP=ZeP-YeP 
+    return XeP, ZeP                            #cost:4eM+5eS
+            
+###############################################################
+
+
+#function for step in Montgomery ladder
+#simultaneous doubling and differential addition
+def xDBLADD(XP,ZP,XQ,ZQ,xPQ,A24):
+    #input: projective coordinates xP=XP/ZP and xQ=XQ/ZQ, 
+    #       affine difference x(P-Q)=xPQ and 
+    #       curve constant A24=(A+2)/4. 
+    #output: projective coordinates of x(2P)=X2P/Z2P
+    #        and x(Q+P)=XQP/ZQP
+    t0 = XP + ZP                  #code from msr
+    t1 = XP - ZP 
+    X2P = t0**2
+    t2 = XQ - ZQ
+    XQP = XQ + ZQ
+    t0 = t0 * t2
+    Z2P = t1**2
+    t1 = t1 * XQP
+    t2 = X2P - Z2P
+    X2P = X2P * Z2P
+    XQP = A24 * t2
+    ZQP = t0 - t1
+    Z2P = XQP + Z2P
+    XQP = t0 + t1
+    Z2P = Z2P * t2
+    ZQP = ZQP**2
+    XQP = XQP**2
+    ZQP = xPQ * ZQP
+    
+    return X2P, Z2P, XQP, ZQP    #cost: 6M+4S+8a    
+    
+    
+################################################################
+
+
+#function for computing [2^e](X:Z) via repeated doublings
+def xDBLe(XP,ZP,A,C,e):
+    #input: projective coordinates xP=XP/ZP
+    #       curve constant A/C
+    #output: projective coordinates of x(2^e*P)=XeP/ZeP
+    A24num = C + C                      #code from msr
+    A24den = A24num + A24num
+    A24num = A24num + A
+    
+    XeP = XP
+    ZeP = ZP
+    
+    for i in range(0,e):
+        XeP, ZeP = xDBL(XeP, ZeP, A24num, A24den)
+        
+    return XeP, ZeP                            #cost:4eM+2eS+(4e+3)a
+    
+
+####################################################################
+
+#edwards-montgomery step in basefield
+def xDBLADD_basefield(XP,ZP,XQ,ZQ,xPQ,A24,C24):
+    #input: projective coordinates xP=XP/ZP and xQ=XQ/ZQ, 
+    #       affine difference x(P-Q)=xPQ and 
+    #       curve constant A24=(A+2)/4. 
+    #output: projective coordinates of x(2P)=X2P/Z2P
+    #        and x(Q+P)=XQP/ZQP
+    # function assumes A24=1, C24=2 fixed
+    
+    t0 = XP + ZP   #Montgomery-addition
+    t1 = XP - ZP
+    XP = XQ - ZQ
+    ZP = XQ + ZQ
+    t2 = (XP * t0)%p
+    t3 = (ZP * t1)%p
+    ZP = t2 - t3
+    XP = t2 + t3
+    ZP = (ZP**2)%p
+    XQP = (XP**2)%p
+    ZQP = (xPQ * ZP)%p
+
+    t1=(t1**2)%p  #Y^2    #edwards doubling
+    t0=(t0**2)%p  #Z^2
+    t2=t0+t1      #+ 
+    t2=(t2**2)%p  #y^4+z^4+2y^2z^2
+    t0=(t0**2)%p  #z^4
+    t1=(t1**2)%p  #y^4
+    t2=t2-t1
+    X2P=(t2-t0)%p #2y^2z^2
+    Z2P=(t0-t1)%p 
+
+    return X2P, Z2P, XQP, ZQP     #cost: 3M+7S+8a
+
+
+####################################################################
+
+
+#triple point in Edwards-coordinates
+def xTPL(X, Z, AE, DE):
+    #input: projective x-coordinates of xP=X/Z
+    #       curve constant A/C
+    #output: projective x-coordinates of x(3P)=X3/Z3
+    
+    Ye = X-Z     #transformation to Edwards
+    Ze = Z+X
+    
+    Ye, Ze = edDBL(Ye, Ze, AE, DE) #Edwards doubling
+    
+    t0 = Ze + Ze   #Montgomery addition
+    t1 = Ye + Ye
+    XP = X - Z
+    ZP = X + Z
+    t0 = XP * t0
+    t1 = ZP * t1
+    ZP = t0 - t1
+    XP = t0 + t1
+    ZP = ZP**2
+    X3 = XP**2
+    Z3 = X * ZP
+    X3 = X3 * Z     #cost:7S+8M
+
+    
+    
+    return X3, Z3               
+    
+
+#################################################################   
+
+#triple point e times -> [3^e](X:Z)
+def xTPLe(X, Z, A, C, e):
+    #input: projective x-coordinates (X:Z) of P
+    #       curve constant A/C
+    #output: projective x-coordinates of x([3^e]P)=Xep/ZeP
+    
+    XeP = X
+    ZeP = Z
+    
+    C2=C+C  #Edwards coefficients
+    AE=A+C2
+    DE=A-C2
+    
+    for i in range (0, e):
+        XeP, ZeP = xTPL(XeP, ZeP, AE, DE)
+        
+    return XeP, ZeP            #cost:8eM+4eS+(8e+3)a
+
+
+######################################################################
+
+#montgomery-ladder
+def LADDER(x, m, A24, C24, AliceorBob):
+    #input: affine x-coordinate of a point on E: B*y^2=x^3+A*x^2+x, 
+    #       scalar m, curve constant (A+2)/4
+    #output: projective coordinates x(mP)=X0/Z0 and x((m+1)P)=X1/Z1
+    # function assumes A24=1, C24=2 fixed
+    #if A24 != 1:
+    #   print('wrong A24-value')
+    #if C24 != 2:
+    #   print('wrong C24-value')
+    
+    binary = lambda n: n>0 and [n&1]+binary(n>>1) or []
+    bits = binary(m)
+    
+    A24, C24 = 1, 2
+    X0, Z0 = 1, 0      #initialization with infinity
+    X1, Z1 = x, 1
+    
+    if AliceorBob == 'Alice':
+        nbits = eAbits
+    else:
+        nbits = eBbits
+        
+    #for i in range(0, nbits - len(bits)):
+    #   X0, Z0, X1, Z1 = xDBLADD_basefield(X0, Z0, X1, Z1, x, A24, C24)
+    
+    for i in range(len(bits)-1, -1, -1):    
+        if bits[i] == 0:
+            X0, Z0, X1, Z1 = xDBLADD_basefield(X0, Z0, X1, Z1, x, A24, C24)
+        else:
+            X1, Z1, X0, Z0 = xDBLADD_basefield(X1, Z1, X0, Z0, x, A24, C24) 
+            
+    return X0, Z0, X1, Z1       #cost:5nM+4nS+9na   
+                            
+    
+#########################################################################
+
+#function for computing P+[m]Q
+def secret_pt(x, y, m, AliceorBob):
+    #input: point P=(x,y) in base field subgroup, Q=(-x,iy), scalar m
+    #output: RX0, RX1, RZ in Fp with (RX0+iRX1)/RZ is x-coordinate of P+[m]Q
+    
+    A24, C24 = 1, 2
+    X0, Z0, X1, Z1 = LADDER(-x, m, A24, C24, AliceorBob)
+    
+    RZ = (x * Z0)%p
+    RX0 = (X0 * x)%p
+    t4 = (X0 + RZ)%p
+    RZ = (X0 - RZ)%p
+    t0 = (t4**2)%p
+    RX0 = Z0 - RX0
+    t0 = (t0 * X1)%p
+    RX0 = (RX0 * RZ)%p
+    t2 = (y * Z1)%p
+    t1 = (y * Z0)%p
+    t2 = t2 + t2
+    RX1 = (t2 * Z0)%p
+    RX0 = (RX0 * Z1)%p
+    RX0 = RX0 - t0
+    t1 = (t1 * RX1)%p
+    t0 = (RX1**2)%p
+    t2 = (t2 * RX1)%p
+    RX1 = (t1 * RX0)%p
+    t3 = t1 + RX0
+    RX1 = RX1 + RX1
+    t1 = t1 - RX0
+    t1 = (t1 * t3)%p
+    RZ = (RZ**2)%p
+    t2 = (t2 * t4)%p
+    t2 = (t2 * RZ)%p
+    RZ = (t0 * RZ)%p
+    RX0 = t1 - t2
+    RX0 = RX0 % p
+    RX1 = RX1 % p
+    return RX0, RX1, RZ        #cost: 15M+3S+9a
+    
+    
+#####################################################################
+
+
+#three-point-ladder by de feo et al. calculates P+[m]Q
+def LADDER_3_pt(m, xP, xQ, xPQ, A, AliceorBob):
+    #input: affine x-coordinates xP, xQ, xPQ
+    #       curve constant A, scalar m
+    #output: projectove x.coordinate x(P+[m]Q)=WX/WZ
+    
+    binary = lambda n: n>0 and [n&1]+binary(n>>1) or []
+    bits = binary(m)
+
+    A24 = A + Complex(2)
+    A24 = A24 * inv4
+    
+    UX = Complex(1) 
+    UZ = Complex(0)                    #initialization with infinity
+    VX = xQ
+    VZ = Complex(1)
+    WX = xP
+    WZ = Complex(1)
+    
+    if AliceorBob == 'Alice':
+        nbits = eAbits
+    else:
+        nbits = eBbits
+        
+    #for i in range(0, nbits - len(bits)):
+    #   WX, WZ = xADD(UX, UZ, WX, WZ, xP)
+    #   UX, UZ, VX, VZ = xDBLADD(UX, UZ, VX, VZ, xQ, A24)
+        
+    for i in range(len(bits)-1, -1, -1):    
+        if bits[i] == 0:
+            WX, WZ = xADD(UX, UZ, WX, WZ, xP)
+            UX, UZ, VX, VZ = xDBLADD(UX, UZ, VX, VZ, xQ, A24)
+        else:
+            UX, UZ = xADD(UX, UZ, VX, VZ, xQ)
+            VX, VZ, WX, WZ = xDBLADD(VX, VZ, WX, WZ, xPQ, A24)  
+            
+    return WX, WZ       #cost:9nM+6nS+(14n+3)a
+    
+
+#####################################################################   
+    
+#calculate 4-isogenies
+def get_4_isog(X4, Z4):
+    #input: projective point of order four (X4:Z4)
+    #output: 4-isog curve with projective coefficient A/C and
+    #        5 coefficients for evaluating
+    
+    coeff0 = X4 + Z4
+    coeff3 = X4**2
+    coeff4 = Z4**2
+    coeff0 = coeff0**2
+    coeff1 = coeff3 + coeff4
+    coeff2 = coeff3 - coeff4
+    coeff3 = coeff3**2
+    coeff4 = coeff4**2
+    A = coeff3 + coeff3
+    coeff0 = coeff0 - coeff1
+    A = A - coeff4
+    C = coeff4
+    A = A + A
+    
+    return A, C, [coeff0, coeff1, coeff2, coeff3, coeff4]     #cost:5S+7a
+
+
+######################################################################
+
+
+#evaluate 4-isogenies: given coefficients from get_4_isog, evaluate at point in domain
+def eval_4_isog(coeff, X, Z):
+    #input: coefficients from get_4_isog
+    #       projective point P=(X:Z)
+    #output: projective point phi(P)=(X:Z) (overwritten since they replace inputs)
+    
+    X = coeff[0] * X
+    t0 = coeff[1] * Z
+    X = X - t0
+    Z = coeff[2] * Z
+    t0 = X - Z
+    Z = X * Z
+    t0 = t0**2
+    Z = Z + Z
+    Z = Z + Z
+    X = t0 + Z
+    Z = t0 * Z
+    Z = coeff[4] * Z
+    t0 = t0 * coeff[4]
+    t1 = X * coeff[3]
+    t0 = t0 - t1
+    X = X * t0
+    
+    return X, Z              #cost:9M+1S+6a
+
+
+######################################################################
+
+#first 4-isogenie is different
+def first_4_isog(X4, Z4, A):
+    #input: projective point (X4:Z4) and affine curve constant A (start parameter is affine)
+    #output: projective point (X:Z) in the codomain
+    #        isogenous curve constant A/C      (inputs overwritten)
+    
+    t0 = X4**2
+    X = Z4**2
+    Z = X4 * Z4
+    X4 = A * Z
+    Z = Z + Z
+    Z4 = Z - X4
+    t0 = t0 + X
+    X = t0 + Z
+    Z = t0 - Z
+    X4 = X4 + t0
+    X = X * X4
+    Z = Z4 * Z
+    C = Complex(A.re - 2,A.im)
+    An = Complex(0)
+    An.re = A.re + 6
+    An.re = An.re + An.re
+    An.im = A.im + A.im
+    An = Complex(An.re , An.im)
+    
+    return X, Z, An, C      #cost: 4M+2S+9a
+    
+    
+####################################################################     
+
+#compute 3-isogenies
+def get_3_isog(X3, Z3):
+    #input: projective point (X3:Z3) of order 3
+    #ouput: coefficient A/C of 3-isog curve. no other coeff needed
+    
+    t0 = X3**2
+    t1 = t0 + t0
+    t0 = t0 + t1
+    t1 = Z3**2
+    A = t1**2
+    t1 = t1 + t1
+    C = t1 + t1
+    t1 = t0 - t1
+    t1 = t1 * t0
+    A = A - t1
+    A = A - t1
+    A = A - t1
+    t1 = X3 * Z3
+    C = C * t1
+    
+    return A, C             #cost: 3M+3S+8a
+    
+
+####################################################################
+
+#evaluate 3-isogenies
+def eval_3_isog(X3, Z3, X, Z):
+    #input: projective point (X3:Z3) of order 3
+    #       projective x coordinate x(P)=X/Z
+    #output: projective x-coordinate of phi(X:Z)
+    t0 = X3 * X
+    t1 = Z3 * X
+    t2 = Z3 * Z
+    t0 = t0 - t2
+    t2 = Z * X3
+    t1 = t1 - t2
+    t0 = t0**2
+    t1 = t1**2
+    X = X * t0
+    Z = Z * t1
+    
+    return X, Z              #cost: 6M+2S+2a
+    
+
+######################################################################
+
+
+#with affine x-coordinate of P, return projective x-coordinates of Q-P where 
+#Q=tau(P) is image of the distortion map
+
+def distort_and_diff(xP):
+    #input: affine x-coordinate xP
+    #output: point (x(Q-P),z(Q-P)) with Q=tau(P)
+    
+    XD = (xP**2)%p
+    XD = XD + 1
+    XD = Complex(0, XD)
+    ZD = (xP + xP)%p
+    ZD = Complex(ZD)
+    
+    return XD, ZD
+    
+    
+######################################################################
+
+#compute inverses of 3 elements
+def inv_3_way(z1, z2, z3):
+    #input: 3 values z1, z2, z3
+    #output: their inverses, inputs overwritten     
+    
+    t0 = z1 * z2
+    t1 = t0 * z3
+    t1 = inv(t1)
+    t2 = z3 * t1
+    t3 = t2 * z2
+    z2 = t2 * z1
+    z3 = t0 * t1
+    z1 = t3
+    
+    return z1, z2, z3         #cost: 6M+1I
+
+
+#######################################################################
+
+#calculate A from x-coordinates of P, Q, R, such that R=Q-P is on the
+#montgomery-curve E_A: y^2=x^3+A*x^2+x
+def get_A(xP, xQ, xR):
+    #input: x-coordinates xP, xQ, xR
+    #output: coefficient A
+    
+    t1 = xP + xQ
+    t0 = xP * xQ
+    A = xR * t1
+    A = A + t0
+    t0 = t0 * xR
+    A = A - Complex(1)
+    t0 = t0 + t0
+    t1 = t1 + xR
+    t0 = t0 + t0
+    A = A**2
+    t0 = inv(t0)
+    A = A * t0
+    A = A - t1
+
+    return A                 #cost: 4M+1S+7a+1I
+##########################################################################
+
+#caluclate the inverse of an element
+def inv(z):
+    re = z.re
+    im = z.im
+    den = re**2
+    t0 = im**2
+    den = den + t0
+    den = int(den)
+    den = pow(den, p-2, p)
+    re = re * den
+    im = im * den
+    z = Complex(re, -im)
+    
+    return z
+
+
+######################################################################
+
+
+def keygen_Bob(SK_Bob, params, splits, MAX):
+    #input: secret random number in (1,oB-1)
+    #       public parameters [XPA, XPB, YPB]
+    #output: public key [phi_B(x(PA)),phi_B(x(QA)),phi_B(x(QA-PA))]
+    
+    A, C = Complex(0), Complex(1)  #starting montgomery curve
+    phiPX = params[0]   #Bob's starting points -> public key
+    phiPZ = Complex(1)
+    phiQX = Complex(-phiPX)
+    phiQZ = Complex(1)
+    
+    phiDX, phiDZ = distort_and_diff(phiPX)   #(phiDX:phiDZ)=x(Q-P) 
+    phiPX = Complex(phiPX)
+    
+    #compute the point x(R)=(RX:RZ) via secret_pt, R=P+[SK_Alice]Q
+    RX0, RX1, RZ = secret_pt(params[1], params[2], SK_Bob, 'Bob')
+    RX = Complex(RX0, RX1)
+    RZ = Complex(RZ)
+    
+    #counters
+    iso, mul = 0, 0
+    
+    pts = []
+    index = 0
+    
+    #Bob's main loop
+    for row in range(1, MAX):
+        
+        #multiply (RX:RZ) until it has order 3. store intermediate pts
+        while index < (MAX - row):
+            pts.append([RX, RZ, index])
+            m = splits[MAX-index-row]
+            RX, RZ = xTPLe(RX, RZ, A, C, m)
+            mul = mul + m
+            index = index + m
+        
+        #compute isogeny    
+        A, C = get_3_isog(RX, RZ)
+        
+        #evaluate 3-isogeny at every point in pts
+        for i in range(0, len(pts)):
+            pts[i][0], pts[i][1] = eval_3_isog(RX, RZ, pts[i][0], pts[i][1])
+            iso = iso + 1
+            
+        #evaluate 3-isogeny at Alice's points       
+        phiPX, phiPZ = eval_3_isog(RX, RZ, phiPX, phiPZ) #P=phi(P)
+        phiQX, phiQZ = eval_3_isog(RX, RZ, phiQX, phiQZ) #Q=phi(Q)
+        phiDX, phiDZ = eval_3_isog(RX, RZ, phiDX, phiDZ) #D=phi(D)
+        iso = iso + 3
+        
+        #R becomes last entry of pts, last entry is removed from pts
+        RX = pts[len(pts)-1][0]
+        RZ = pts[len(pts)-1][1]
+        index = pts[len(pts)-1][2]
+        del pts[-1]
+    
+    #compute last isogeny
+    A, C = get_3_isog(RX, RZ)
+    phiPX, phiPZ = eval_3_isog(RX, RZ, phiPX, phiPZ) #P=phi(P)
+    phiQX, phiQZ = eval_3_isog(RX, RZ, phiQX, phiQZ) #Q=phi(Q)
+    phiDX, phiDZ = eval_3_isog(RX, RZ, phiDX, phiDZ) #D=phi(D)
+    iso = iso + 3
+    
+    #compute affine x-coordinates
+    phiPZ, phiQZ, phiDZ = inv_3_way(phiPZ, phiQZ, phiDZ)
+    phiPX = phiPX * phiPZ
+    phiQX = phiQX * phiQZ
+    phiDX = phiDX * phiDZ   
+    
+    #Bob's public key, values in Fp2
+    PK_Bob = [phiPX, phiQX, phiDX]
+    
+    msg="Bob's keygen needs "+str(mul)+" multiplications by 3 and "+str(iso)+" isogenies"
+    print(msg)
+    print('')
+    keysize = len(binary(phiPX.re)) + len(binary(phiPX.im)) + len(binary(phiQX.re)) + len(binary(phiQX.im))+ len(binary(phiDX.re)) + len(binary(phiDX.im))
+    msg="Keysize of Bob's public key: " + str(keysize) + " bits"
+    print(msg)
+    
+    return PK_Bob
+    
+
+######################################################################
+
+def shared_secret_Bob(SK_Bob, PK_Alice, splits, MAX):
+    #input: Bob's secret key SK_Alice
+    #       Alices's public key
+    #output: Bob's shared secret: j-invariant of E_BA
+    
+    A = get_A(PK_Alice[0], PK_Alice[1], PK_Alice[2])
+    C = Complex(1)     #start on Alice's curve
+    
+    #compute R=phi_A(xPB)+SK_Bob*phi_A(xQB)
+    RX, RZ = LADDER_3_pt(SK_Bob, PK_Alice[0], PK_Alice[1], PK_Alice[2], A, 'Bob')
+    iso, mul = 0, 0  #counters
+    
+    pts = []
+    index = 0
+    
+    #Bob's main loop
+    for row in range(1, MAX):
+        
+        #multiply (RX:RZ) until it has order 3. store intermediate pts
+        while index < (MAX - row):
+            pts.append([RX, RZ, index])
+            m = splits[MAX-index-row]
+            RX, RZ = xTPLe(RX, RZ, A, C, m)
+            mul = mul + m
+            index = index + m
+        
+        #compute isogeny    
+        A, C = get_3_isog(RX, RZ)
+        
+        #evaluate 3-isogeny at every point in pts
+        for i in range(0, len(pts)):
+            pts[i][0], pts[i][1] = eval_3_isog(RX, RZ, pts[i][0], pts[i][1])
+            iso = iso + 1
+            
+        #R becomes last entry of pts, last entry is removed from pts
+        RX = pts[len(pts)-1][0]
+        RZ = pts[len(pts)-1][1]
+        index = pts[len(pts)-1][2]
+        del pts[-1]
+    
+    #compute last isogeny
+    A, C = get_3_isog(RX, RZ)
+    
+    secret_Bob = j_inv(A, C)    
+    
+    msg="Bob's secret needs "+str(mul)+" multiplications by 3 and "+str(iso)+" isogenies"
+    print(msg)
+    
+    return secret_Bob   
+
+######################################################################
+
+#parameters defining prime p=lA^eA*lB^e_B*f-1
+lA=2
+lB=3
+eA=372
+eB=239
+#eA=15
+#eB=8
+f=1
+
+binary = lambda n: n>0 and [n&1]+binary(n>>1) or []
+
+eAbits = len(binary(lA**eA))
+eBbits = len(binary(lB**eB))
+
+#defining p (must be prime!)
+p=(lA**eA)*(lB**eB)*f-1   
+
+#inverse of 4, needed for 3-pt-ladder
+inv4 = inv(Complex(4))
+    
+#values for eA=372, eB=239
+XPA = 5784307033157574162391672474522522983832304511218905707704962058799572462719474192769980361922537187309960524475241186527300549088533941865412874661143122262830946833377212881592965099601886901183961091839303261748866970694633
+YPA = 5528941793184617364511452300962695084942165460078897881580666552736555418273496645894674314774001072353816966764689493098122556662755842001969781687909521301233517912821073526079191975713749455487083964491867894271185073160661
+XPB = 4359917396849101231053336763700300892915096700013704210194781457801412731643988367389870886884336453245156775454336249199185654250159051929975600857047173121187832546031604804277991148436536445770452624367894371450077315674371
+YPB = 106866937607440797536385002617766720826944674650271400721039514250889186719923133049487966730514682296643039694531052672873754128006844434636819566554364257913332237123293860767683395958817983684370065598726191088239028762772
+
+#values for eA=8, eB=5
+#XPA = 4437
+#YPA = 55467
+#XPB = 24048
+#YPB = 57850
+
+#values for eA=13, eB=7
+#XPA = 4698102
+#YPA = 1371375
+#XPB = 1258275
+#YPB = 10923545
+
+#values for eA=15, eB=8
+#XPA = 144036251
+#YPA = 40988612
+#XPB = 4982149
+#YPB = 74338728
+
+# params_Alice = [XPB, XPA, YPA]
+params_Bob = [XPA, XPB, YPB]
+
+#################################################################
+
+splits_Bob = [0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 6, 7, 8, 8, 8, 8, 9, 9, 9, 9, 9, 10,\
+12, 12, 12, 12, 12, 12, 13, 14, 14, 15, 16, 16, 16, 16, 16, 17, 16, 16, 17, 19,\
+19, 20, 21, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 24, 24, 25, 27, 27, 28, 28,\
+29, 28, 29, 28, 28, 28, 30, 28, 28, 28, 29, 30, 33, 33, 33, 33, 34, 35, 37, 37,\
+37, 37, 38, 38, 37, 38, 38, 38, 38, 38, 39, 43, 38, 38, 38, 38, 43, 40, 41, 42,\
+43, 48, 45, 46, 47, 47, 48, 49, 49, 49, 50, 51, 50, 49, 49, 49, 49, 51, 49, 53,\
+50, 51, 50, 51, 51, 51, 52, 55, 55, 55, 56, 56, 56, 56, 56, 58, 58, 61, 61, 61,\
+63, 63, 63, 64, 65, 65, 65, 65, 66, 66, 65, 65, 66, 66, 66, 66, 66, 66, 66, 71,\
+66, 73, 66, 66, 71, 66, 73, 66, 66, 71, 66, 73, 68, 68, 71, 71, 73, 73, 73, 75,\
+75, 78, 78, 78, 80, 80, 80, 81, 81, 82, 83, 84, 85, 86, 86, 86, 86, 86, 87, 86,\
+88, 86, 86, 86, 86, 88, 86, 88, 86, 86, 86, 88, 88, 86, 86, 86, 93, 90, 90, 92,\
+92, 92, 93, 93, 93, 93, 93, 97, 97, 97, 97, 97, 97 ]
+
+MAX_Bob = 239
+
+#######################################################################
+
+#Decrypts received secret & nbit keys
+def decrypting(key, filename):
+    chunksize = 64 * 1024
+    outputFile = filename.split('.hacklab')[0]
+
+    with open(filename, 'rb') as infile:
+        filesize = int(infile.read(16))
+        IV = infile.read(16)
+        decryptor = AES.new(key, AES.MODE_CBC, IV)
+
+        with open(outputFile, 'wb') as outfile:
+            while True:
+                chunk = infile.read(chunksize)
+                if len(chunk) == 0:
+                    break
+                outfile.write(decryptor.decrypt(chunk))
+            outfile.truncate(filesize)
+
+    return outputFile
+
+def handshake():
+        logger.info('Starting Key Exchange...\n')
+
+        print()
+        logger.info('Output found. Key exchange begins...\n')
+
+        n_Bob= randint(0,lB**eB)
+        logger.info("Bob's secret key:")
+        logger.info(n_Bob)
+        print('')
+
+        PKB = keygen_Bob(n_Bob, params_Bob, splits_Bob, MAX_Bob)
+        print('')
+        logger.info("Bob's Public Key:")
+        logger.info('%s',(PKB[0]))
+        logger.info('%s',(PKB[1]))
+        logger.info('%s',(PKB[2]))
+        keyreal1 = PKB[0].re
+        keyimag1 = PKB[0].im
+        keyreal2 = PKB[1].re
+        keyimag2 = PKB[1].im
+        keyreal3 = PKB[2].re
+        keyimag3 = PKB[2].im
+        encoded = asn1_file.encode('DataPublicKey',{'keyreal1': keyreal1, 'keyimag1': keyimag1, 'keyreal2': keyreal2, 'keyimag2': keyimag2,'keyreal3': keyreal3, 'keyimag3': keyimag3})
+
+        print('')
+        print('')
+        logger.info('Data Sent %s %s %s', PKB[0], PKB[1], PKB[2])
+
+        #Sends Bob's encoded public key to Key Gen.
+        sock_output.sendall(encoded)
+        print()
+
+        logger.info('Receiving Key Gens Public Key...\n')
+
+        #Receives Key Gen's public key.
+        PKA_encoded = sock_output.recv(2048)
+            
+        PKA_decoded = asn1_file.decode('DataPublicKey', PKA_encoded)
+        #Retrieving Key Gen's public key in INT Form
+        keyreal1A = PKA_decoded.get('keyreal1')
+        keyimag1A = PKA_decoded.get('keyimag1')
+        keyreal2A = PKA_decoded.get('keyreal2')
+        keyimag2A = PKA_decoded.get('keyimag2')
+        keyreal3A = PKA_decoded.get('keyreal3')
+        keyimag3A = PKA_decoded.get('keyimag3')
+     
+            
+        #Forming Key Gen's public key into complex form for calculations
+        phiPX = Complex(keyreal1A, keyimag1A)
+        phiQX = Complex(keyreal2A, keyimag2A)
+        phiDX = Complex(keyreal3A, keyimag3A)
+
+        PKA = [phiPX, phiQX, phiDX]
+
+        logger.info('Public Key Received: ')
+        logger.info(PKA[0])
+        logger.info(PKA[1])
+        logger.info(PKA[2])
+      
+        print()
+        logger.info('Computing shared secret...\n')
+
+    #Calculates shared secret based off received public key
+
+        SKB = shared_secret_Bob(n_Bob, PKA, splits_Bob, MAX_Bob)
+        print('')
+        logger.info("Bob's shared secret:")
+        logger.info(SKB)
+        print('')
+        
+        #Hashing Shared Secret
+        SKB_ComplexToString = secretKeyEncoder().encode(SKB)
+        SKB_StringToBytes = SKB_ComplexToString.encode()
+        #SK = Skeleton Key
+        SK = hashlib.sha256(SKB_StringToBytes).digest()
+        
+#######################################################################
+
+
+    #Testing phase
+    # buffer_size = 1
+
+        buffer_size = 1024
+        while True:
+            try:
+                #Listening and receive data
+                OPERATION_AND_IP_BER = sock_output.recv(buffer_size)
+
+                print("length of operation and ip", len(OPERATION_AND_IP_BER))
+                print("Operation and IP BER", OPERATION_AND_IP_BER)
+
+                #Decode BER
+                OPERATION_AND_IP_decoded = asn1_file.decode('DataUserInput', OPERATION_AND_IP_BER)
+
+                #Send success msg to output
+                msg = "success"
+                sock_output.send(msg.encode())
+
+                #Break out of while loop if succeed
+                break
+
+            except:
+                #Print error message
+                print("An error occured", sys.exc_info()[0])
+
+                #Empty out data from socket
+                read_con = [sock_output]
+                while True:
+                    r, w, e = select.select(read_con, [], [], 0.0)
+                    if len(r) == 0:
+                        break
+                    else:
+                        for data in r:
+                            data.recv(1024)
+
+                #Testing phase
+                # buffer_size = int(input("Size of buffer?"))
+
+                #Send fail message to output
+                msg = "fail"
+                sock_output.send(msg.encode())
+                continue
+        #####
+
+        #Print out operation and IP
+        print("Operation and IP data", OPERATION_AND_IP_decoded)
+
+        # Define global lists for ipaddresses and operation codes
+        global ipList
+        ipList = []
+
+        global opList
+        opList = []
+
+        global numClList
+        numClList = []
+
+        # Create variables for each ipaddress and operation
+        for k1, v1 in OPERATION_AND_IP_decoded.items():
+            for k2,v2 in v1.items():
+                locals()[k2] = k2
+                print('key',k2)
+
+        postfix_expr = OPERATION_AND_IP_decoded['postfix']['postfix']
+        print('Postfix: ',postfix_expr)
+        p = open('postfix.hacklab', 'wb')
+        p.write(postfix_expr)
+        p.close()
+        decrypting(SK, 'postfix.hacklab')
+        p = open('postfix', 'r')
+        postfix = str(p.read())
+        p.close()
+        print("The postfix expression is: ",postfix)
+        global postfixList
+        postfixList = " ".join(postfix)
+        postfixList = postfixList.split()
+        print("POSTFIX LIST", postfixList)
+
+        global flip 
+        flip = False
+
+        numClList = re.findall("[a-zA-Z]", postfix)
+        sock_output.close()
+
+        # iterate through postfixList to sort alpha char and operators
+        x = 0
+        y = 0
+        for i in postfixList:
+            if (i.isalpha()):
+                CLI = OPERATION_AND_IP_decoded['ipaddress']['ipaddress{0}'.format(x+1)]
+                print("Client :", CLI)
+                c = open("client.hacklab", "wb")
+                c.write(CLI)
+                c.close()
+                decrypting(SK, 'client.hacklab')
+                c = open("client", "r")
+                CLIENT = c.read()
+                c.close()
+                ipList.append(CLIENT)
+                print(ipList)
+                os.remove('client')
+                os.remove('client.hacklab')
+                x = x + 1
+            else:
+                OPCODE = OPERATION_AND_IP_decoded['operation']['operation{0}'.format(y+1)]
+                print("Opcode:", OPCODE)
+                o = open("opcode.hacklab","wb")
+                o.write(OPCODE)
+                o.close()
+                decrypting(SK, 'opcode.hacklab')
+                o = open("opcode", "r")
+                OPCODE = o.read()
+                o.close()
+                opList.append(OPCODE)
+                print(opList)
+                os.remove('opcode')
+                os.remove('opcode.hacklab')
+                y = y + 1
+
+                print(len(ipList))
+                if (len(ipList) == 1) or (len(numClList) ==1):
+                    print(ipList)
+                    compute_final()
+                elif (len(ipList) > 1) and (len(numClList) >1):
+                    if (len(ipList) == 2):
+                        flip = True
+                    else:
+                        flip = False
+                    print(ipList)
+                    computation()
+                else:
+                    None
+        answer()
+        sys.exit()
+
+##########################################################
+
+def computation():
+    print("ip list",ipList)
+    print("op list",opList)
+    time.sleep(5)
+    
+    # pop the last element of ipList
+    CL_A = ipList.pop()
+    numClList.pop(0)
+
+    time.sleep(5)
+
+    # pop the next last element of ipList
+    CL_B = ipList.pop()
+    numClList.pop(0)
+    cipher((CL_B, 4381))
+    cipher_ab((CL_A, 4381))
+
+    # At this stage cloud.data should contain the ciphertexts from 2 CL
+    compute()
+    
+def cipher(client_address):
+
+    data_request_time_start = time.perf_counter()
+
+    while True:
+        try:
+            sockA.connect(client_address)
+            break
+        except ConnectionRefusedError as conn_error:
+            print('A connection error has occured')
+            print(conn_error)
+            print('Attempting to connect to client again')
+            time.sleep(5)
+        except KeyboardInterrupt:
+            print('Crtl-C pressed to terminate program')
+            pass
+        except:
+            print('Unexpected error: ',sys.exc_info()[0])
+
+    # Open the cloud data received from client and write to cloud.data
+
+#####
+    BUFFER_SIZE = 1032
+    with open('cloud.data', 'wb') as f:
+        print ('Cloud data file opened...\n')
+    
+        #Size of cloud data
+        while True:
+            try:
+                msg = sockA.recv(BUFFER_SIZE)
+                fsize_decoded = asn1_file.decode("DataFsize", msg)
+                fsize = int(fsize_decoded.get("data"))
+
+                #Send success msg to output
+                msg = "success"
+                sockA.send(msg.encode())
+
+                #Break out of while loop if succeed
+                break
+
+            except:
+                #Print error message
+                print("An error occured", sys.exc_info()[0])
+
+                #Empty out data from socket
+                read_con = [sockA]
+                while True:
+                    r, w, e = select.select(read_con, [], [], 0.0)
+                    if len(r) == 0:
+                        break
+                    else:
+                        for data in r:
+                            data.recv(1024)
+                    
+                #Testing phase
+                # buffer_size = int(input("Size of buffer?"))
+                
+                #Send fail message to output
+                msg = "fail"
+                sockA.send(msg.encode())
+                continue
+
+        #Received size
+        rsize = 0
+
+        # Decode received cloud data from BER
+        while True:
+            try:
+                while True:
+                    print ('Receiving cloud data...\n')
+        
+                    #BER receive data and decode
+                    cloud_data = sockA.recv(BUFFER_SIZE)
+
+                    #Testing phase
+                    # BUFFER_SIZE -=10
+
+                    print("Length of cloud data",len(cloud_data))
+                    #print(cloud_data)
+                    cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
+                    cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
+
+                    #Writing data
+                    f.write(cloud_data_decoded_raw)
+
+                    #Send success message to client
+                    msg = "success"
+                    sockA.sendall(msg.encode())
+
+                    #Break occur if all data is received
+                    rsize = rsize + len(cloud_data_decoded_raw)
+                    if rsize >= fsize:
+                        print ('Breaking from file write')
+                        break
+            except:
+                #Print error message
+                print("An error occured:", sys.exc_info()[0])
+
+                #Empty out data from socket
+                read_con = [sockA]
+                while True:
+                    r, w, e = select.select(read_con, [], [], 0.0)
+                    if len(r) == 0:
+                        break
+                    else:
+                        for data in r:
+                            data.recv(1024)
+
+                #Testing phase
+                # BUFFER_SIZE = int(input("sock a, Size of buffer size?\n"))
+
+                #Send fail message to client
+                msg = "fail"
+                sockA.send(msg.encode())
+                continue
+            
+            else:
+                #Break out of while loop
+                if rsize >= fsize:
+                    print ('Received everything.. Breaking out')
+                    break
+#####
+        f.close()
+        print ('Successfully got the file\n')
+
+    # Send notice to the client;
+    indicator = asn1_file.encode('DataIndicator', {'data':"Hello! cloud.data received"})
+######
+    while True:
+        sockA.send(indicator)
+
+        #Receive msg
+        encode_msg = sockA.recv(1024)
+        msg = encode_msg.decode()
+
+        print(msg)
+
+        #if success break
+        if (msg == "success"):
+            break
+        else:
+            continue
+######
+    print("Sending an indicator...\n")
+    print('Cloud data file size: ', os.path.getsize('cloud.data'))
+    sockA.close()
+
+    data_request_time_stop = time.perf_counter()
+    global data_request_time1
+    data_request_time1 = round((data_request_time_stop - data_request_time_start), 3)
+    f = open('timings.txt', 'a')
+    f.write('\nThe total time elapsed for data request for client 1 is: ')
+    f.write(str(data_request_time1))
+    f.close
+
+def cipher_ab(client_address):
+    # This function appends to cloud.data instead of overwriting it.
+
+    data_request_time_start2 = time.perf_counter()
+
+    while True:
+        try:
+            sockB.connect(client_address)
+            break
+        except ConnectionRefusedError as conn_error:
+            print('A connection error has occured')
+            print(conn_error)
+            print('Attempting to connect to client again')
+            time.sleep(5)
+        except KeyboardInterrupt:
+            print('Crtl-C pressed to terminate program')
+            pass
+        except:
+            print('Unexpected error: ',sys.exc_info()[0])
+    # Open the cloud data received from client and write to cloud.data
+
+#####
+    BUFFER_SIZE = 1032
+    with open('cloud.data', 'ab') as f:
+        print ('Cloud data file opened...\n')
+       
+        while True:
+            try:
+                msg = sockB.recv(BUFFER_SIZE)
+                fsize_decoded = asn1_file.decode("DataFsize", msg)
+                fsize = int(fsize_decoded.get("data"))
+
+                #Send success
+                msg = "success"
+                sockB.send(msg.encode())
+
+                #Break out of while loop if succeed
+                break
+            
+            except:
+                #Print error message
+                print("An error occured", sys.exc_info()[0])
+
+                #Empty out data from socket
+                read_con = [sockB]
+                while True:
+                    r, w, e = select.select(read_con, [], [], 0.0)
+                    if len(r) == 0:
+                        break
+                    else:
+                        for data in r:
+                            data.recv(1024)
+                    
+                #Testing phase
+                # BUFFER_SIZE = int(input("fSize of buffer?"))
+                
+                #Send fail message to output
+                msg = "fail"
+                sockB.send(msg.encode())
+                continue
+
+        #Received size
+        rsize = 0
+        
+        while True:
+            try:
+                while True:
+                    print ('Receiving cloud data...\n')
+  
+                    #Received BER data and decode
+                    cloud_data = sockB.recv(BUFFER_SIZE)
+
+                    #Testing phase
+                    # BUFFER_SIZE -=10
+
+                    cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
+                    cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
+                    
+
+                    #Writing data
+                    f.write(cloud_data_decoded_raw)
+
+                    #Send success message to client
+                    msg = "success"
+                    sockB.sendall(msg.encode())
+
+                    #Break occur if all data is received
+                    rsize = rsize + len(cloud_data_decoded_raw)
+                    if rsize >= fsize:
+                        print ('Breaking from file write')
+                        break
+
+            except:
+                #Print error message
+                print("An error has occured:", sys.exc_info()[0])
+
+                #Empty out data from socket
+                read_con = [sockB]
+                while True:
+                    r, w, e = select.select(read_con, [], [], 0.0)
+                    if len(r) == 0:
+                        break
+                    else:
+                        for data in r:
+                            data.recv(1024)
+
+                #Testing phase
+                # BUFFER_SIZE = int(input("sock a, Size of buffer size?\n"))
+
+                #Send fail message to client
+                msg = "fail"
+                sockB.send(msg.encode())
+                continue
+
+            else:
+                #Break out of while loop
+                if rsize >= fsize:
+                    print ('Received everything.. Breaking out')
+                    break
+
+#####
+        f.close()
+        print ('Successfully got the file\n')
+
+    # Send notice to the client;
+    indicator = asn1_file.encode('DataIndicator', {'data':"Hello! cloud.data received"})
+######
+    while True:
+        sockB.send(indicator)
+
+        #Receive msg
+        encode_msg = sockB.recv(1024)
+        msg = encode_msg.decode()
+
+        print(msg)
+
+        #if success break
+        if (msg == "success"):
+            break
+        else:
+            continue
+######
+    print("Sending an indicator...\n")
+    print('Cloud data file size: ', os.path.getsize('cloud.data'))
+    sockB.close()
+    data_request_time_stop2 = time.perf_counter()
+    data_request_time2 = round((data_request_time_stop2 - data_request_time_start2), 3)
+    f = open('timings.txt', 'a')
+    f.write('\nThe total time elapsed for data request for client2 is: ')
+    f.write(str(data_request_time2))
+    f.close
+
+
+def cipher2(client_address):
+    data_request_time_start = time.perf_counter()
+    while True:
+        try:
+            sock.connect(client_address)
+            break
+        except ConnectionRefusedError as conn_error:
+            print('A connection error has occured')
+            print(conn_error)
+            print('Attempting to connect to client again')
+            time.sleep(5)
+        except KeyboardInterrupt:
+            print('Crtl-C pressed to terminate program')
+            pass
+        except:
+            print('Unexpected error: ',sys.exc_info()[0])
+
+    #####
+    BUFFER_SIZE = 1032
+
+    #Testing phase
+    # BUFFER_SIZE = 3
+
+    with open('cloud.data', 'wb') as f:
+        print ('Cloud data file opened...\n')
+
+        #Size of cloud data
+        while True:
+            try:
+                msg = sock.recv(BUFFER_SIZE)
+                fsize_decoded = asn1_file.decode("DataFsize", msg)
+                fsize = int(fsize_decoded.get("data"))
+
+                #Send success msg to output
+                msg = "success"
+                sock.send(msg.encode())
+
+                #Break out of while loop if succeed
+                break
+
+            except:
+                #Print error message
+                print("An error occured", sys.exc_info()[0])
+
+                #Empty out data from socket
+                read_con = [sock]
+                while True:
+                    r, w, e = select.select(read_con, [], [], 0.0)
+                    if len(r) == 0:
+                        break
+                    else:
+                        for data in r:
+                            data.recv(1024)
+
+                #Testing phase
+                # BUFFER_SIZE = int(input("Size of buffer?"))
+
+                #Send fail message to output
+                msg = "fail"
+                sock.send(msg.encode())
+                continue
+
+        #Received size
+        rsize = 0
+
+        # Decode received cloud data from BER
+        while True:
+            try:
+                while True:
+                    print ('Receiving cloud data...\n')
+
+                    #BER received and decode
+                    cloud_data = sock.recv(BUFFER_SIZE)
+
+                    #Testing phase
+                    # BUFFER_SIZE -=10
+
+                    cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
+                    cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
+                    #print(cloud_data)
+
+                    #Writing to file
+                    f.write(cloud_data_decoded_raw)
+
+                    #sending success message to client
+                    msg = "success"
+                    sock.sendall(msg.encode())
+
+                    #Break occur if all data is received
+                    rsize = rsize + len(cloud_data_decoded_raw)
+                    if rsize >= fsize:
+                        print ('Breaking from file write')
+                        break
+            except:
+                #Print error message
+                print("An error occured:", sys.exc_info()[0])
+
+                #Empty out data from socket
+                read_con = [sock]
+                while True:
+                    r, w, e = select.select(read_con, [], [], 0.0)
+                    if len(r) == 0:
+                        break
+                    else:
+                        for data in r:
+                            data.recv(1024)
+
+                #Testing phase
+                # BUFFER_SIZE = int(input("sock a, Size of buffer size?\n"))
+
+                #Send fail message to client
+                msg = "fail"
+                sock.send(msg.encode())
+                continue
+
+            else:
+                #Break out of while loop
+                if rsize >= fsize:
+                    print ('Received everything.. Breaking out')
+                    break
+
+    #####
+    f.close()
+    print ('Successfully got the file\n')
+
+    # Send notice to the client;
+    indicator = asn1_file.encode('DataIndicator', {'data':"Hello! cloud.data received"})
+
+    ######
+    while True:
+        sock.send(indicator)
+        #Receive msg
+        encode_msg = sock.recv(1024)
+        msg = encode_msg.decode()
+
+        print(msg)
+
+        #if success break
+        if (msg == "success"):
+            break
+        else:
+            continue
+    ######
+    print("Sending an indicator...\n")
+    print('Cloud data file size: ', os.path.getsize('cloud.data'))
+    sock.close()
+
+    data_request_time_stop = time.perf_counter()
+    data_request_time3 = round((data_request_time_stop - data_request_time_start), 3)
+    f = open('timings.txt', 'a')
+    f.write('\nThe total time elapsed for data request for client 3 is: ')
+    f.write(str(data_request_time3))
+    f.close
+
+
+
+def compute():
+    
+    operator = int(opList.pop(0))
+
+    print("Starting computation process")
+
+    # NOTE: change the subprocess file as required, when available
+    if operator == 1:
+        o = open('operator.txt', 'w')
+        o.write("1")
+        o.close()
+        compute_time_start = time.perf_counter()
+        # The user has chosen the Addition function
+        # Run C++ Adder_cloud to compute answer
+        subprocess.call("./cloud")
+        print("Printing addition answer data...\n")
+        compute_time_stop = time.perf_counter()
+        compute_time_final = round((compute_time_stop - compute_time_start), 3)
+        f = open('timings.txt','a')
+        f.write('\nComputation time: ')
+        f.write(str(compute_time_final))
+        f.close()
+    elif operator == 2:
+        o = open('operator.txt', 'w')
+        o.write("2")
+        o.close()
+        compute_time_start = time.perf_counter()
+        # The user has chosen the Subtraction function
+        # Run C++ subtract_cloud to compute answer
+        subprocess.call("./cloud")
+        print("Printing subtraction answer data...\n")
+        compute_time_stop = time.perf_counter()
+        compute_time_final = round((compute_time_stop - compute_time_start), 3)
+        f = open('timings.txt','a')
+        f.write('\nComputation time: ')
+        f.write(str(compute_time_final))
+        f.close()
+    elif operator == 3:
+        o = open('operator.txt', 'w')
+        o.write("4") # cloud uses 4 to denote multiplication
+        o.close()
+        compute_time_start = time.perf_counter()
+        # The user has chosen the Multiplication function
+        # Run C++ Multiply_cloud to compute answer
+        subprocess.call("./cloud")
+        print("Printing multiplication answer data...\n")
+        compute_time_stop = time.perf_counter()
+        compute_time_final = round((compute_time_stop - compute_time_start), 3)
+        f = open('timings.txt','a')
+        f.write('\nComputation time: ')
+        f.write(str(compute_time_final))
+        f.close()
+    elif operator == 4:
+        o = open('operator.txt', 'w')
+        o.write("4") # cloud uses 4 to denote multiplication
+        o.close()
+        compute_time_start = time.perf_counter()
+        # The user has chosen the Division function
+        # Run C++ Divide_cloud to compute answer
+        subprocess.call("./cloud")
+        print("Printing Multiplication answer data...\n")
+        compute_time_stop = time.perf_counter()
+        compute_time_final = round((compute_time_stop - compute_time_start), 3)
+        f = open('timings.txt','a')
+        f.write('\nComputation time: ')
+        f.write(str(compute_time_final))
+        f.close()
+    else:
+        None
+
+
+    # Print size of answer.data
+    answer_data = 'answer.data'
+    ans_size = os.path.getsize(answer_data)
+    print("File size of computed answer file: ", ans_size)
+
+    if ans_size <= 162304:
+        answer()
+        sys.exit()
+
+
+def compute_final():
+
+    CL_C = ipList.pop()
+    numClList.pop(0)
+    cipher2((CL_C, 4381))
+    
+    if flip == True:
+        with open('cloud.data', 'rb') as c:
+            cloud = c.read(8192)
+            with open('answer.data', 'ab') as a:
+                while cloud:
+                    a.write(cloud)
+                    cloud = c.read(8192)
+        os.system('cp answer.data cloud.data')
+        os.remove('answer.data')
+        compute()
+
+    else:
+        
+        # copy binary contents of answer.data to append to cloud.data
+        with open('answer.data', 'rb') as a:
+            answer = a.read(8192)
+            with open('cloud.data', 'ab') as c:
+                while answer:
+                    c.write(answer)
+                    answer = a.read(8192)
+        os.remove('answer.data')
+        compute()
+    
+def answer():
+
+    answer_data = "answer.data"
+    ans_size = os.path.getsize(answer_data)
+    print("This file ", answer_data, "is our computed answer\n")
+
+
+    # Open the file and read its content
+    # f = open('answer.data', 'rb')
+    # answer = f.read(8192)
+
+    # Open socket connection to OUTPUT to send Answer
+    output_ipaddr = "192.168.0.4"
+    output_address =(output_ipaddr, 4381)
+
+    sock_output2.connect(output_address)
+    print ("connecting to", output_ipaddr)
+
+    # Encode ans_size in BER
+    # Send size of answer file to the client
+    # Send answer file to output
+    ans_size = os.path.getsize(answer_data)
+    ans_size_encoded = asn1_file.encode('DataAnsSize', {'data':ans_size})
+
+    while True:
+        sock_output2.send(ans_size_encoded)
+
+        #receive msg
+        encode_msg = sock_output2.recv(1024)
+        msg = encode_msg.decode()
+
+        print(ans_size_encoded)
+
+        #if success, break
+        if (msg == "success"):
+            break
+        else:
+            continue
+  
+    print("Sending answer...\n")
+
+    # Read the final answer file and send it to the OUTPUT
+    # with open('answer.data', 'rb') as f:
+    # answer = f.read(1032)
+
+    #####
+    #Get size of answer.data
+    answ_data_size = os.path.getsize("answer.data")
+    print("Size of answer.data is", answ_data_size)
+
+    #set offset value
+    offset_value = 0
+
+    #Testing x value
+    with open('answer.data', 'rb') as f:
+        while True:
+            print("offset",f.tell())
+            #Before offset
+            before_offset = f.tell()
+            answer = f.read(1032)
+
+            #BER encode answer & send
+            answer_encoded = asn1_file.encode('DataAnswer', {'data':answer})
+            sock_output2.sendall(answer_encoded)
+
+            #after offset
+            after_offset = f.tell()
+
+            #receving msg
+            encode_msg = sock_output2.recv(1024)
+            msg = encode_msg.decode()
+
+            #success message
+            if (msg == "success"):
+                #close socket if all data send
+                print(answ_data_size)
+                print(after_offset)
+                if (int(after_offset == answ_data_size)):
+                    sock_output2.shutdown(socket.SHUT_RDWR)
+                    sock_output2.close()
+                    break
+                #fail message
+                else:
+                    continue
+            else:
+                #offset differences
+                offset_differences = int(after_offset) - int(before_offset)
+
+                #offset value
+                offset_value = int(after_offset) - int(offset_differences)
+                f.seek(offset_value)
+
+    #####
+    f.close()
+    print("File size of computed answer file: ", os.path.getsize(answer_data))
+    os.system("md5sum answer.data")
+    os.remove('answer.data')
+    sock_output2.close()
+
+if __name__ == '__main__':
+
+    sockA = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sockB = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock_output = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock_output2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    output_ipaddr = "192.168.0.4"
+    output_address =(output_ipaddr, 4381)
+    while True:
+        try:
+            sock_output.connect(output_address)
+            print('Connected to output')
+            break
+        except ConnectionRefusedError as conn_error:
+            print('A connection error has occured')
+            print(conn_error)
+            print('Attempting to connect to OUTPUT again')
+            time.sleep(5)
+        except KeyboardInterrupt:
+            print('Crtl-C pressed to terminate program')
+            pass
+        except:
+            print ("connecting to", output_ipaddr)
+
+    handshake()
