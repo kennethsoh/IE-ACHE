@@ -1826,6 +1826,7 @@ if __name__ == '__main__':
     while True:
         try:
             sock_output.connect(output_address)
+            print('Connected to output)
             break
         except ConnectionRefusedError as conn_error:
             print('A connection error has occured')
