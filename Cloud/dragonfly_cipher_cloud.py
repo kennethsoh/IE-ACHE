@@ -1463,142 +1463,142 @@ def cipher2(client_address):
         except:
             print('Unexpected error: ',sys.exc_info()[0])
 
-#####
-BUFFER_SIZE = 1032
+    #####
+    BUFFER_SIZE = 1032
 
-#Testing phase
-# BUFFER_SIZE = 3
+    #Testing phase
+    # BUFFER_SIZE = 3
 
-with open('cloud.data', 'wb') as f:
-    print ('Cloud data file opened...\n')
+    with open('cloud.data', 'wb') as f:
+        print ('Cloud data file opened...\n')
 
-    #Size of cloud data
-    while True:
-        try:
-            msg = sock.recv(BUFFER_SIZE)
-            fsize_decoded = asn1_file.decode("DataFsize", msg)
-            fsize = int(fsize_decoded.get("data"))
+        #Size of cloud data
+        while True:
+            try:
+                msg = sock.recv(BUFFER_SIZE)
+                fsize_decoded = asn1_file.decode("DataFsize", msg)
+                fsize = int(fsize_decoded.get("data"))
 
-            #Send success msg to output
-            msg = "success"
-            sock.send(msg.encode())
-
-            #Break out of while loop if succeed
-            break
-
-        except:
-            #Print error message
-            print("An error occured", sys.exc_info()[0])
-
-            #Empty out data from socket
-            read_con = [sock]
-            while True:
-                r, w, e = select.select(read_con, [], [], 0.0)
-                if len(r) == 0:
-                    break
-                else:
-                    for data in r:
-                        data.recv(1024)
-
-            #Testing phase
-            # BUFFER_SIZE = int(input("Size of buffer?"))
-
-            #Send fail message to output
-            msg = "fail"
-            sock.send(msg.encode())
-            continue
-
-    #Received size
-    rsize = 0
-
-    # Decode received cloud data from BER
-    while True:
-        try:
-            while True:
-                print ('Receiving cloud data...\n')
-
-                #BER received and decode
-                cloud_data = sock.recv(BUFFER_SIZE)
-
-                #Testing phase
-                # BUFFER_SIZE -=10
-
-                cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
-                cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
-                #print(cloud_data)
-
-                #Writing to file
-                f.write(cloud_data_decoded_raw)
-
-                #sending success message to client
+                #Send success msg to output
                 msg = "success"
-                sock.sendall(msg.encode())
+                sock.send(msg.encode())
 
-                #Break occur if all data is received
-                rsize = rsize + len(cloud_data_decoded_raw)
-                if rsize >= fsize:
-                    print ('Breaking from file write')
-                    break
-        except:
-            #Print error message
-            print("An error occured:", sys.exc_info()[0])
-
-            #Empty out data from socket
-            read_con = [sock]
-            while True:
-                r, w, e = select.select(read_con, [], [], 0.0)
-                if len(r) == 0:
-                    break
-                else:
-                    for data in r:
-                        data.recv(1024)
-
-            #Testing phase
-            # BUFFER_SIZE = int(input("sock a, Size of buffer size?\n"))
-
-            #Send fail message to client
-            msg = "fail"
-            sock.send(msg.encode())
-            continue
-
-        else:
-            #Break out of while loop
-            if rsize >= fsize:
-                print ('Received everything.. Breaking out')
+                #Break out of while loop if succeed
                 break
 
-#####
-f.close()
-print ('Successfully got the file\n')
+            except:
+                #Print error message
+                print("An error occured", sys.exc_info()[0])
 
-# Send notice to the client;
-indicator = asn1_file.encode('DataIndicator', {'data':"Hello! cloud.data received"})
+                #Empty out data from socket
+                read_con = [sock]
+                while True:
+                    r, w, e = select.select(read_con, [], [], 0.0)
+                    if len(r) == 0:
+                        break
+                    else:
+                        for data in r:
+                            data.recv(1024)
 
-######
-while True:
-    sock.send(indicator)
-    #Receive msg
-    encode_msg = sock.recv(1024)
-    msg = encode_msg.decode()
+                #Testing phase
+                # BUFFER_SIZE = int(input("Size of buffer?"))
 
-    print(msg)
+                #Send fail message to output
+                msg = "fail"
+                sock.send(msg.encode())
+                continue
 
-    #if success break
-    if (msg == "success"):
-        break
-    else:
-        continue
-######
-print("Sending an indicator...\n")
-print('Cloud data file size: ', os.path.getsize('cloud.data'))
-sock.close()
+        #Received size
+        rsize = 0
 
-data_request_time_stop = time.perf_counter()
-data_request_time3 = round((data_request_time_stop - data_request_time_start), 3)
-f = open('timings.txt', 'a')
-f.write('\nThe total time elapsed for data request for client 3 is: ')
-f.write(str(data_request_time3))
-f.close
+        # Decode received cloud data from BER
+        while True:
+            try:
+                while True:
+                    print ('Receiving cloud data...\n')
+
+                    #BER received and decode
+                    cloud_data = sock.recv(BUFFER_SIZE)
+
+                    #Testing phase
+                    # BUFFER_SIZE -=10
+
+                    cloud_data_decoded_dict = asn1_file.decode("DataContent", cloud_data)
+                    cloud_data_decoded_raw = cloud_data_decoded_dict.get("data")
+                    #print(cloud_data)
+
+                    #Writing to file
+                    f.write(cloud_data_decoded_raw)
+
+                    #sending success message to client
+                    msg = "success"
+                    sock.sendall(msg.encode())
+
+                    #Break occur if all data is received
+                    rsize = rsize + len(cloud_data_decoded_raw)
+                    if rsize >= fsize:
+                        print ('Breaking from file write')
+                        break
+            except:
+                #Print error message
+                print("An error occured:", sys.exc_info()[0])
+
+                #Empty out data from socket
+                read_con = [sock]
+                while True:
+                    r, w, e = select.select(read_con, [], [], 0.0)
+                    if len(r) == 0:
+                        break
+                    else:
+                        for data in r:
+                            data.recv(1024)
+
+                #Testing phase
+                # BUFFER_SIZE = int(input("sock a, Size of buffer size?\n"))
+
+                #Send fail message to client
+                msg = "fail"
+                sock.send(msg.encode())
+                continue
+
+            else:
+                #Break out of while loop
+                if rsize >= fsize:
+                    print ('Received everything.. Breaking out')
+                    break
+
+    #####
+    f.close()
+    print ('Successfully got the file\n')
+
+    # Send notice to the client;
+    indicator = asn1_file.encode('DataIndicator', {'data':"Hello! cloud.data received"})
+
+    ######
+    while True:
+        sock.send(indicator)
+        #Receive msg
+        encode_msg = sock.recv(1024)
+        msg = encode_msg.decode()
+
+        print(msg)
+
+        #if success break
+        if (msg == "success"):
+            break
+        else:
+            continue
+    ######
+    print("Sending an indicator...\n")
+    print('Cloud data file size: ', os.path.getsize('cloud.data'))
+    sock.close()
+
+    data_request_time_stop = time.perf_counter()
+    data_request_time3 = round((data_request_time_stop - data_request_time_start), 3)
+    f = open('timings.txt', 'a')
+    f.write('\nThe total time elapsed for data request for client 3 is: ')
+    f.write(str(data_request_time3))
+    f.close
 
 
 
@@ -1757,59 +1757,59 @@ def answer():
     # with open('answer.data', 'rb') as f:
     # answer = f.read(1032)
 
-#####
-#Get size of answer.data
-answ_data_size = os.path.getsize("answer.data")
-print("Size of answer.data is", answ_data_size)
+    #####
+    #Get size of answer.data
+    answ_data_size = os.path.getsize("answer.data")
+    print("Size of answer.data is", answ_data_size)
 
-#set offset value
-offset_value = 0
+    #set offset value
+    offset_value = 0
 
-#Testing x value
-with open('answer.data', 'rb') as f:
-    while True:
-        print("offset",f.tell())
-        #Before offset
-        before_offset = f.tell()
-        answer = f.read(1032)
+    #Testing x value
+    with open('answer.data', 'rb') as f:
+        while True:
+            print("offset",f.tell())
+            #Before offset
+            before_offset = f.tell()
+            answer = f.read(1032)
 
-        #BER encode answer & send
-        answer_encoded = asn1_file.encode('DataAnswer', {'data':answer})
-        sock_output2.sendall(answer_encoded)
+            #BER encode answer & send
+            answer_encoded = asn1_file.encode('DataAnswer', {'data':answer})
+            sock_output2.sendall(answer_encoded)
 
-        #after offset
-        after_offset = f.tell()
+            #after offset
+            after_offset = f.tell()
 
-        #receving msg
-        encode_msg = sock_output2.recv(1024)
-        msg = encode_msg.decode()
+            #receving msg
+            encode_msg = sock_output2.recv(1024)
+            msg = encode_msg.decode()
 
-        #success message
-        if (msg == "success"):
-            #close socket if all data send
-            print(answ_data_size)
-            print(after_offset)
-            if (int(after_offset == answ_data_size)):
-                sock_output2.shutdown(socket.SHUT_RDWR)
-                sock_output2.close()
-                break
-            #fail message
+            #success message
+            if (msg == "success"):
+                #close socket if all data send
+                print(answ_data_size)
+                print(after_offset)
+                if (int(after_offset == answ_data_size)):
+                    sock_output2.shutdown(socket.SHUT_RDWR)
+                    sock_output2.close()
+                    break
+                #fail message
+                else:
+                    continue
             else:
-                continue
-        else:
-            #offset differences
-            offset_differences = int(after_offset) - int(before_offset)
+                #offset differences
+                offset_differences = int(after_offset) - int(before_offset)
 
-            #offset value
-            offset_value = int(after_offset) - int(offset_differences)
-            f.seek(offset_value)
+                #offset value
+                offset_value = int(after_offset) - int(offset_differences)
+                f.seek(offset_value)
 
-#####
-f.close()
-print("File size of computed answer file: ", os.path.getsize(answer_data))
-os.system("md5sum answer.data")
-os.remove('answer.data')
-sock_output2.close()
+    #####
+    f.close()
+    print("File size of computed answer file: ", os.path.getsize(answer_data))
+    os.system("md5sum answer.data")
+    os.remove('answer.data')
+    sock_output2.close()
 
 if __name__ == '__main__':
 
