@@ -805,54 +805,61 @@ def inv(z):
 ######################################################################
 
 
-def keygen_Bob(SK_Bob, params, splits, MAX):
-    #input: secret random number in (1,oB-1)
-    #       public parameters [XPA, XPB, YPB]
-    #output: public key [phi_B(x(PA)),phi_B(x(QA)),phi_B(x(QA-PA))]
+def keygen_Alice(SK_Alice, params, splits, MAX):
+    #input: secret random even number in (1,oA-1)
+    #       public parameters [XPB, XPA, YPA]
+    #output: public key [phi_A(x(PB)),phi_A(x(QB)),phi_A(x(QB-PB))] 
     
     A, C = Complex(0), Complex(1)  #starting montgomery curve
-    phiPX = params[0]   #Bob's starting points -> public key
+    phiPX = params[0]  #Bob's starting points -> public key
     phiPZ = Complex(1)
     phiQX = Complex(-phiPX)
     phiQZ = Complex(1)
     
-    phiDX, phiDZ = distort_and_diff(phiPX)   #(phiDX:phiDZ)=x(Q-P) 
+    phiDX, phiDZ = distort_and_diff(phiPX)   #(phiDX:phiDZ)=x(Q-P)
     phiPX = Complex(phiPX)
     
-    #compute the point x(R)=(RX:RZ) via secret_pt, R=P+[SK_Alice]Q
-    RX0, RX1, RZ = secret_pt(params[1], params[2], SK_Bob, 'Bob')
+    #compute the point x(R)=(RX:RZ) via secre_pt, R=P+[SK_Alice]Q
+    RX0, RX1, RZ = secret_pt(params[1], params[2], SK_Alice, 'Alice')
     RX = Complex(RX0, RX1)
     RZ = Complex(RZ)
     
     #counters
     iso, mul = 0, 0
     
+    #first 4-isogeny (different from rest)
+    phiPX, phiPZ, A2, C2 = first_4_isog(phiPX, phiPZ, A)
+    phiQX, phiQZ, A2, C2 = first_4_isog(phiQX, phiQZ, A)
+    phiDX, phiDZ, A2, C2 = first_4_isog(phiDX, phiDZ, A)
+    RX, RZ, A, C = first_4_isog(RX, RZ, A)
+    iso = iso + 4
+    
     pts = []
     index = 0
     
-    #Bob's main loop
+    #Alice's main loop
     for row in range(1, MAX):
         
-        #multiply (RX:RZ) until it has order 3. store intermediate pts
+        #multiply (RX:RZ) until it has order 4. store intermediate pts
         while index < (MAX - row):
             pts.append([RX, RZ, index])
             m = splits[MAX-index-row]
-            RX, RZ = xTPLe(RX, RZ, A, C, m)
+            RX, RZ = edDBLe(RX, RZ, A, C, 2*m)
             mul = mul + m
-            index = index + m
-        
+            index = index + m   
+            
         #compute isogeny    
-        A, C = get_3_isog(RX, RZ)
+        A, C, consts = get_4_isog(RX, RZ)
         
-        #evaluate 3-isogeny at every point in pts
+        #evaluate 4-isogeny at every point in pts
         for i in range(0, len(pts)):
-            pts[i][0], pts[i][1] = eval_3_isog(RX, RZ, pts[i][0], pts[i][1])
+            pts[i][0], pts[i][1] = eval_4_isog(consts, pts[i][0], pts[i][1])
             iso = iso + 1
             
-        #evaluate 3-isogeny at Alice's points       
-        phiPX, phiPZ = eval_3_isog(RX, RZ, phiPX, phiPZ) #P=phi(P)
-        phiQX, phiQZ = eval_3_isog(RX, RZ, phiQX, phiQZ) #Q=phi(Q)
-        phiDX, phiDZ = eval_3_isog(RX, RZ, phiDX, phiDZ) #D=phi(D)
+        #evaluate 4-isogeny at Bob's points     
+        phiPX, phiPZ = eval_4_isog(consts, phiPX, phiPZ) #P=phi(P)
+        phiQX, phiQZ = eval_4_isog(consts, phiQX, phiQZ) #Q=phi(Q)
+        phiDX, phiDZ = eval_4_isog(consts, phiDX, phiDZ) #D=phi(D)
         iso = iso + 3
         
         #R becomes last entry of pts, last entry is removed from pts
@@ -862,67 +869,71 @@ def keygen_Bob(SK_Bob, params, splits, MAX):
         del pts[-1]
     
     #compute last isogeny
-    A, C = get_3_isog(RX, RZ)
-    phiPX, phiPZ = eval_3_isog(RX, RZ, phiPX, phiPZ) #P=phi(P)
-    phiQX, phiQZ = eval_3_isog(RX, RZ, phiQX, phiQZ) #Q=phi(Q)
-    phiDX, phiDZ = eval_3_isog(RX, RZ, phiDX, phiDZ) #D=phi(D)
+    A, C, consts = get_4_isog(RX, RZ)
+    phiPX, phiPZ = eval_4_isog(consts, phiPX, phiPZ) #P=phi(P)
+    phiQX, phiQZ = eval_4_isog(consts, phiQX, phiQZ) #Q=phi(Q)
+    phiDX, phiDZ = eval_4_isog(consts, phiDX, phiDZ) #D=phi(D)
     iso = iso + 3
-    
+            
     #compute affine x-coordinates
     phiPZ, phiQZ, phiDZ = inv_3_way(phiPZ, phiQZ, phiDZ)
     phiPX = phiPX * phiPZ
     phiQX = phiQX * phiQZ
-    phiDX = phiDX * phiDZ   
+    phiDX = phiDX * phiDZ
     
-    #Bob's public key, values in Fp2
-    PK_Bob = [phiPX, phiQX, phiDX]
+    #Alices's public key, values in Fp2
+    PK_Alice = [phiPX, phiQX, phiDX]
     
-    msg="Bob's keygen needs "+str(mul)+" multiplications by 3 and "+str(iso)+" isogenies"
+    msg="Alice's keygen needs "+str(mul)+" multiplications by 4 and "+str(iso)+" isogenies"
     print(msg)
     print('')
     keysize = len(binary(phiPX.re)) + len(binary(phiPX.im)) + len(binary(phiQX.re)) + len(binary(phiQX.im))+ len(binary(phiDX.re)) + len(binary(phiDX.im))
-    msg="Keysize of Bob's public key: " + str(keysize) + " bits"
+    msg="Keysize of Alice's public key: " + str(keysize) + " bits"
     print(msg)
-    
-    return PK_Bob
+
+    return PK_Alice
     
 
 ######################################################################
 
-def shared_secret_Bob(SK_Bob, PK_Alice, splits, MAX):
-    #input: Bob's secret key SK_Alice
-    #       Alices's public key
-    #output: Bob's shared secret: j-invariant of E_BA
+def shared_secret_Alice(SK_Alice, PK_Bob, splits, MAX):
+    #input: Alices's secret key SK_Alice
+    #       Bob's public key
+    #output: Alice's shared secret: j-invariant of E_AB
     
-    A = get_A(PK_Alice[0], PK_Alice[1], PK_Alice[2])
-    C = Complex(1)     #start on Alice's curve
+    A = get_A(PK_Bob[0], PK_Bob[1], PK_Bob[2])
+    C = Complex(1)     #start on Bob's curve
     
-    #compute R=phi_A(xPB)+SK_Bob*phi_A(xQB)
-    RX, RZ = LADDER_3_pt(SK_Bob, PK_Alice[0], PK_Alice[1], PK_Alice[2], A, 'Bob')
+    #compute R=phi_B(xPA)+SK_Alice*phi_B(xQA)
+    RX, RZ = LADDER_3_pt(SK_Alice, PK_Bob[0], PK_Bob[1], PK_Bob[2], A, 'Alice')
     iso, mul = 0, 0  #counters
+    
+    #first isogeny
+    RX, RZ, A, C = first_4_isog(RX, RZ, A)
+    iso = iso + 1
     
     pts = []
     index = 0
     
-    #Bob's main loop
+    #main loop
     for row in range(1, MAX):
         
-        #multiply (RX:RZ) until it has order 3. store intermediate pts
+        #multiply (RX:RZ) until it has order 4. store intermediate pts
         while index < (MAX - row):
             pts.append([RX, RZ, index])
             m = splits[MAX-index-row]
-            RX, RZ = xTPLe(RX, RZ, A, C, m)
+            RX, RZ = edDBLe(RX, RZ, A, C, 2*m)
             mul = mul + m
             index = index + m
         
         #compute isogeny    
-        A, C = get_3_isog(RX, RZ)
+        A, C, consts = get_4_isog(RX, RZ)
         
-        #evaluate 3-isogeny at every point in pts
+        #evaluate 4-isogeny at every point in pts
         for i in range(0, len(pts)):
-            pts[i][0], pts[i][1] = eval_3_isog(RX, RZ, pts[i][0], pts[i][1])
+            pts[i][0], pts[i][1] = eval_4_isog(consts, pts[i][0], pts[i][1])
             iso = iso + 1
-            
+        
         #R becomes last entry of pts, last entry is removed from pts
         RX = pts[len(pts)-1][0]
         RZ = pts[len(pts)-1][1]
@@ -930,14 +941,14 @@ def shared_secret_Bob(SK_Bob, PK_Alice, splits, MAX):
         del pts[-1]
     
     #compute last isogeny
-    A, C = get_3_isog(RX, RZ)
+    A, C, consts = get_4_isog(RX, RZ)
+        
+    secret_Alice = j_inv(A, C)  
     
-    secret_Bob = j_inv(A, C)    
-    
-    msg="Bob's secret needs "+str(mul)+" multiplications by 3 and "+str(iso)+" isogenies"
+    msg="Alice's secret needs "+str(mul)+" multiplications by 4 and "+str(iso)+" isogenies"
     print(msg)
     
-    return secret_Bob   
+    return secret_Alice
 
 ######################################################################
 
@@ -985,25 +996,22 @@ YPB = 10686693760744079753638500261776672082694467465027140072103951425088918671
 #XPB = 4982149
 #YPB = 74338728
 
-# params_Alice = [XPB, XPA, YPA]
-params_Bob = [XPA, XPB, YPB]
+params_Alice = [XPB, XPA, YPA]
+# params_Bob = [XPA, XPB, YPB]
 
 #################################################################
+#strategy paramters from MSR
+splits_Alice = [0, 1, 1, 2, 2, 2, 3, 4, 4, 4, 4, 5, 5, 6, 7, 8, 8, 9, 9, 9, 9, 9, 9, 9, 12, 11,\
+12, 12, 13, 14, 15, 16, 16, 16, 16, 16, 16, 17, 17, 18, 18, 17, 21, 17, 18, 21,\
+20, 21, 21, 21, 21, 21, 22, 25, 25, 25, 26, 27, 28, 28, 29, 30, 31, 32, 32, 32,\
+32, 32, 32, 32, 33, 33, 33, 35, 36, 36, 33, 36, 35, 36, 36, 35, 36, 36, 37, 38,\
+38, 39, 40, 41, 42, 38, 39, 40, 41, 42, 40, 46, 42, 43, 46, 46, 46, 46, 48, 48,\
+48, 48, 49, 49, 48, 53, 54, 51, 52, 53, 54, 55, 56, 57, 58, 59, 59, 60, 62, 62,\
+63, 64, 64, 64, 64, 64, 64, 64, 64, 65, 65, 65, 65, 65, 66, 67, 65, 66, 67, 66,\
+69, 70, 66, 67, 66, 69, 70, 69, 70, 70, 71, 72, 71, 72, 72, 74, 74, 75, 72, 72,\
+74, 74, 75, 72, 72, 74, 75, 75, 72, 72, 74, 75, 75, 77, 77, 79, 80, 80, 82 ]
 
-splits_Bob = [0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 6, 7, 8, 8, 8, 8, 9, 9, 9, 9, 9, 10,\
-12, 12, 12, 12, 12, 12, 13, 14, 14, 15, 16, 16, 16, 16, 16, 17, 16, 16, 17, 19,\
-19, 20, 21, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 24, 24, 25, 27, 27, 28, 28,\
-29, 28, 29, 28, 28, 28, 30, 28, 28, 28, 29, 30, 33, 33, 33, 33, 34, 35, 37, 37,\
-37, 37, 38, 38, 37, 38, 38, 38, 38, 38, 39, 43, 38, 38, 38, 38, 43, 40, 41, 42,\
-43, 48, 45, 46, 47, 47, 48, 49, 49, 49, 50, 51, 50, 49, 49, 49, 49, 51, 49, 53,\
-50, 51, 50, 51, 51, 51, 52, 55, 55, 55, 56, 56, 56, 56, 56, 58, 58, 61, 61, 61,\
-63, 63, 63, 64, 65, 65, 65, 65, 66, 66, 65, 65, 66, 66, 66, 66, 66, 66, 66, 71,\
-66, 73, 66, 66, 71, 66, 73, 66, 66, 71, 66, 73, 68, 68, 71, 71, 73, 73, 73, 75,\
-75, 78, 78, 78, 80, 80, 80, 81, 81, 82, 83, 84, 85, 86, 86, 86, 86, 86, 87, 86,\
-88, 86, 86, 86, 86, 88, 86, 88, 86, 86, 86, 88, 88, 86, 86, 86, 93, 90, 90, 92,\
-92, 92, 93, 93, 93, 93, 93, 97, 97, 97, 97, 97, 97 ]
-
-MAX_Bob = 239
+MAX_Alice = 185
 
 #######################################################################
 
