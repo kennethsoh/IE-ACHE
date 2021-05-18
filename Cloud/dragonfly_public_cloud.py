@@ -1036,5 +1036,5 @@ def handshake():
 
 if __name__ == '__main__':
     handshake()
-   
+    sock.close()
     
