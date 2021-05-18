@@ -1023,98 +1023,98 @@ def handshake():
                 msg = "fail"
                 sock_output.send(msg.encode())
                 continue
-#####
+        #####
 
-#Print out operation and IP
-print("Operation and IP data", OPERATION_AND_IP_decoded)
+        #Print out operation and IP
+        print("Operation and IP data", OPERATION_AND_IP_decoded)
 
-# Define global lists for ipaddresses and operation codes
-global ipList
-ipList = []
+        # Define global lists for ipaddresses and operation codes
+        global ipList
+        ipList = []
 
-global opList
-opList = []
+        global opList
+        opList = []
 
-global numClList
-numClList = []
+        global numClList
+        numClList = []
 
-# Create variables for each ipaddress and operation
-for k1, v1 in OPERATION_AND_IP_decoded.items():
-    for k2,v2 in v1.items():
-        locals()[k2] = k2
-        print('key',k2)
+        # Create variables for each ipaddress and operation
+        for k1, v1 in OPERATION_AND_IP_decoded.items():
+            for k2,v2 in v1.items():
+                locals()[k2] = k2
+                print('key',k2)
 
-postfix_expr = OPERATION_AND_IP_decoded['postfix']['postfix']
-print('Postfix: ',postfix_expr)
-p = open('postfix.hacklab', 'wb')
-p.write(postfix_expr)
-p.close()
-decrypting(SK, 'postfix.hacklab')
-p = open('postfix', 'r')
-postfix = str(p.read())
-p.close()
-print("The postfix expression is: ",postfix)
-global postfixList
-postfixList = " ".join(postfix)
-postfixList = postfixList.split()
-print("POSTFIX LIST", postfixList)
+        postfix_expr = OPERATION_AND_IP_decoded['postfix']['postfix']
+        print('Postfix: ',postfix_expr)
+        p = open('postfix.hacklab', 'wb')
+        p.write(postfix_expr)
+        p.close()
+        decrypting(SK, 'postfix.hacklab')
+        p = open('postfix', 'r')
+        postfix = str(p.read())
+        p.close()
+        print("The postfix expression is: ",postfix)
+        global postfixList
+        postfixList = " ".join(postfix)
+        postfixList = postfixList.split()
+        print("POSTFIX LIST", postfixList)
 
-global flip 
-flip = False
+        global flip 
+        flip = False
 
-numClList = re.findall("[a-zA-Z]", postfix)
-sock_output.close()
+        numClList = re.findall("[a-zA-Z]", postfix)
+        sock_output.close()
 
-# iterate through postfixList to sort alpha char and operators
-x = 0
-y = 0
-for i in postfixList:
-    if (i.isalpha()):
-        CLI = OPERATION_AND_IP_decoded['ipaddress']['ipaddress{0}'.format(x+1)]
-        print("Client :", CLI)
-        c = open("client.hacklab", "wb")
-        c.write(CLI)
-        c.close()
-        decrypting(SK, 'client.hacklab')
-        c = open("client", "r")
-        CLIENT = c.read()
-        c.close()
-        ipList.append(CLIENT)
-        print(ipList)
-        os.remove('client')
-        os.remove('client.hacklab')
-        x = x + 1
-    else:
-        OPCODE = OPERATION_AND_IP_decoded['operation']['operation{0}'.format(y+1)]
-        print("Opcode:", OPCODE)
-        o = open("opcode.hacklab","wb")
-        o.write(OPCODE)
-        o.close()
-        decrypting(SK, 'opcode.hacklab')
-        o = open("opcode", "r")
-        OPCODE = o.read()
-        o.close()
-        opList.append(OPCODE)
-        print(opList)
-        os.remove('opcode')
-        os.remove('opcode.hacklab')
-        y = y + 1
-
-        print(len(ipList))
-        if (len(ipList) == 1) or (len(numClList) ==1):
-            print(ipList)
-            compute_final()
-        elif (len(ipList) > 1) and (len(numClList) >1):
-            if (len(ipList) == 2):
-                flip = True
+        # iterate through postfixList to sort alpha char and operators
+        x = 0
+        y = 0
+        for i in postfixList:
+            if (i.isalpha()):
+                CLI = OPERATION_AND_IP_decoded['ipaddress']['ipaddress{0}'.format(x+1)]
+                print("Client :", CLI)
+                c = open("client.hacklab", "wb")
+                c.write(CLI)
+                c.close()
+                decrypting(SK, 'client.hacklab')
+                c = open("client", "r")
+                CLIENT = c.read()
+                c.close()
+                ipList.append(CLIENT)
+                print(ipList)
+                os.remove('client')
+                os.remove('client.hacklab')
+                x = x + 1
             else:
-                flip = False
-            print(ipList)
-            computation()
-        else:
-            None
-answer()
-sys.exit()
+                OPCODE = OPERATION_AND_IP_decoded['operation']['operation{0}'.format(y+1)]
+                print("Opcode:", OPCODE)
+                o = open("opcode.hacklab","wb")
+                o.write(OPCODE)
+                o.close()
+                decrypting(SK, 'opcode.hacklab')
+                o = open("opcode", "r")
+                OPCODE = o.read()
+                o.close()
+                opList.append(OPCODE)
+                print(opList)
+                os.remove('opcode')
+                os.remove('opcode.hacklab')
+                y = y + 1
+
+                print(len(ipList))
+                if (len(ipList) == 1) or (len(numClList) ==1):
+                    print(ipList)
+                    compute_final()
+                elif (len(ipList) > 1) and (len(numClList) >1):
+                    if (len(ipList) == 2):
+                        flip = True
+                    else:
+                        flip = False
+                    print(ipList)
+                    computation()
+                else:
+                    None
+        answer()
+        sys.exit()
 
 ##########################################################
 
