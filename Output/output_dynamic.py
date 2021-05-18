@@ -41,15 +41,15 @@ def generateMd5(file_name):
 
     
 def sidh():
-    # Request Keygen to initiate Dragonfly SAE
+    # Request Keygen to initiate SIDH
     print("Starting Supersingular Isogeny Key Exchange ")
 
     # Wait
     print('Executing SIDH code for Private key')
     time.sleep(1)
 
-    #Executing Dragonfly code for private key
-    subprocess.run('./dragonfly_private_Output.py')
+    #Executing SIDH code for private key
+    subprocess.run('./sidh_private_Output.py')
     MD5_PrivKey = generateMd5("secret.key")
     print ("MD5 of private key:", MD5_PrivKey)
 
@@ -68,15 +68,6 @@ def sidh():
         handshake("client1", "client2", "client3", "client4", "opcode1", "opcode2", "opcode3", "postfix")
     else:
         None
-
-
-    #while True:
-    #   confirm_code = input("Has dragonfly occured between client / output / cloud? (yes/no)")
-    #   if str(confirm_code).lower() == "yes":
-    #       handshake("client1", "client2", "client3", "opcode1", "opcode2", "postfix")
-    #       break
-    #   else:
-    #       None
     
 
 ###############################################33
@@ -1054,7 +1045,7 @@ def handshake(CLIENT1, CLIENT2, CLIENT3, CLIENT4, OPCODE1, OPCODE2, OPCODE3, POS
         print ("Connecting from", output_address)
 
        
-        logger.info('Starting dragonfly commit exchange...\n')
+        logger.info('Starting SIDH commit exchange...\n')
         
         #Calculates Secret and Public Keys
         n_Alice = randint(0,(lA**eA)/2)
@@ -1130,7 +1121,7 @@ def handshake(CLIENT1, CLIENT2, CLIENT3, CLIENT4, OPCODE1, OPCODE2, OPCODE3, POS
         time_elapsed = round((sidh_time - start), 3)
         print('Total time elapsed for Supersingular Isogeny Key Exchange:', time_elapsed, 's')
         f = open('timings.txt', 'a')
-        f.write('Total time elapsed for Dragonfly Key Exchange:')
+        f.write('Total time elapsed for SIDH Key Exchange:')
         f.write(str(time_elapsed))
         f.write("")
         f.close
@@ -1430,8 +1421,8 @@ def handshake(CLIENT1, CLIENT2, CLIENT3, CLIENT4, OPCODE1, OPCODE2, OPCODE3, POS
     stop = time.perf_counter()
     time_elapsed1 = round((stop - sidh_time), 3)
     time_elapsed2 = round((stop - start), 3)
-    print('Total time elapsed excluding Dragonfly Key Exchange:', time_elapsed1, 's')
-    print('Total time elapsed including Dragonfly Key Exchange:', time_elapsed2, 's')
+    print('Total time elapsed excluding SIDH Key Exchange:', time_elapsed1, 's')
+    print('Total time elapsed including SIDH Key Exchange:', time_elapsed2, 's')
     os.system('python3 reset.py')
 
 
