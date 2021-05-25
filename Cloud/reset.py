@@ -9,7 +9,7 @@ try:
     os.remove("cloud.key.hacklab")
     os.remove("postfix")
     os.remove("postfix.hacklab")
-    os.remove("dragonfly.log")
+    os.remove("keyexchange.log")
     os.remove("averagestandard.txt")
 except:
     pass

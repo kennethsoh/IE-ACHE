@@ -17,28 +17,28 @@ from Cryptodome.Hash import SHA256
 from optparse import *
 import logging
 
-# THE PURPOSE OF THIS FILE IS TO INITATE DRAGONFLY KEY EXHANGE AND VERIFY ITS COMPLETION 
+# THE PURPOSE OF THIS FILE IS TO INITATE SIDH KEY EXHANGE AND VERIFY ITS COMPLETION 
 
-def dragonfly():
+def sidh():
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     output_address = ("192.168.0.4", 4380)
     
 
     print('Listening...')
-    logging.info('STARTING dragonfly')
+    logging.info('Starting SIDH')
 
 # else:
-    #Execute dragonfly private for output machine
-    print ('Executing dragonfly code for Output machine.')
+    #Execute sidh private for output machine
+    print ('Executing SIDH code for Output machine.')
 
-    os.system('python3 dragonfly_private_keygen.py')
+    os.system('python3 sidh_private_keygen.py')
 
     
-    #Execute dragonfly public for cloud machine
-    logging.info("dragonfly cloud")
-    print ('executing dragonfly code for CLOUD machine')
-    os.system('python3 dragonfly_public_keygen.py')
+    #Execute sidh public for cloud machine
+    logging.info("SIDH cloud")
+    print ('executing SIDH code for CLOUD machine')
+    os.system('python3 sidh_public_keygen.py')
     
     time.sleep(10)
     try:
@@ -52,4 +52,4 @@ def dragonfly():
 
 
 while True:
-    dragonfly()
+    sidh()

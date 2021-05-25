@@ -648,7 +648,7 @@ void mul128(LweSample *result, LweSample *result2,LweSample *result3,LweSample *
 
 
 int main() {
-	// dragonfly_cipher_cloud should have already appended 2 cipherstreams into cloud.data
+	// sidh_cipher_cloud should have already appended 2 cipherstreams into cloud.data
 
 	printf("Reading the key...\n");
 

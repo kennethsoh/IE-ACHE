@@ -60,6 +60,6 @@ try:
 except:
     None
 try:
-    os.remove("dragonfly.log")
+    os.remove("keyexchange.log")
 except:
     None
