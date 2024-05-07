@@ -42,15 +42,19 @@ local_fqdn = socket.getfqdn()
 #get the according ip address
 ip_address = socket.gethostbyname(local_hostname)
 
-#bind socket to port
 server_address = ('192.168.0.3', 4380)
+
 while True:
-        try:
-                    sock.connect(server_address)
-                    break
-        except:
-                    print('Unexpected error: ',sys.exc_info()[0])
-        
+	try:
+		sock.connect(server_address)
+		break
+	except ConnectionRefusedError as conn_error:
+		print("Attempting to connect to server...")
+		time.sleep(5)
+	except:
+		# print("Unexpected error", sys.exc_info()[0])
+		continue
+
 print ("Connecting to %s (%s) with %s" % (local_hostname, local_fqdn, ip_address))
 
 logger = logging.getLogger('Key Exchange')
@@ -998,20 +1002,20 @@ def handshake():
         SK = hashlib.sha256(SKB_StringToBytes).digest()
         
         #Open the received secret file from the key generator
-        with open('cloud.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
+        with open('secret.key.hacklab', 'wb') as s, open('nbit.key.hacklab', 'wb') as t:
            print ('File opened...\n')
            while True:
                # print ('Receiving data...\n')
                secret_key_BER = sock.recv(16396, socket.MSG_WAITALL)
                if (len(secret_key_BER) > 10):
                    keys_decoded = asn1_file.decode('DataKey', secret_key_BER)
-                   cloud_key = keys_decoded.get('key')
+                   secret_key = keys_decoded.get('key')
                    nbit_key = keys_decoded.get('nbit')
                else:
                    break
-               if not (cloud_key or nbit_key):
+               if not (secret_key or nbit_key):
                    break
-               s.write(cloud_key)
+               s.write(secret_key)
                t.write(nbit_key)
 
            s.close()
@@ -1019,14 +1023,14 @@ def handshake():
 
         print ('Successfully got the files\n')
 
-        print ('Encrypted secret file size: ', os.path.getsize('cloud.key.hacklab'))
+        print ('Encrypted secret file size: ', os.path.getsize('secret.key.hacklab'))
         print ('Encrypted nbit file size: ', os.path.getsize('nbit.key.hacklab'))
 
         print ('Decrypting the files...\n')
 
-        decrypted_cloud_key = decrypting(SK, 'cloud.key.hacklab')
-        print('Acquired original secret key file size: ', os.path.getsize(decrypted_cloud_key))
-        os.system("md5sum cloud.key")
+        decrypted_secret_key = decrypting(SK, 'secret.key.hacklab')
+        print('Acquired original secret key file size: ', os.path.getsize(decrypted_secret_key))
+        os.system("md5sum secret.key")
 
         decrypted_nbit_key = decrypting(SK, 'nbit.key.hacklab')
         print('Acquired original nbit key file size: ', os.path.getsize(decrypted_nbit_key))
@@ -1035,6 +1039,5 @@ def handshake():
 #######################################################################
 
 if __name__ == '__main__':
-    handshake()
-    sock.close()
-    
+	handshake()
+	sock.close()
